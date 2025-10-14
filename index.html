@@ -2,33 +2,56 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Mosaico — Cuadrados & Hexágonos</title>
 <style>
-  :root { --bg:#0f1115; --card:#151923; --fg:#e6e8ef; --muted:#99a1b3; --accent:#4f8cff; }
+  :root {
+    --bg:#0f1115; --card:#151923; --fg:#e6e8ef; --muted:#99a1b3; --accent:#4f8cff;
+    --pad:20px;
+  }
   *{box-sizing:border-box}
-  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);display:flex;min-height:100dvh}
-  .wrap{display:grid;grid-template-columns:340px 1fr;gap:20px;max-width:1500px;margin:auto;padding:20px;width:100%}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{
+    display:grid; grid-template-columns:340px 1fr; gap:20px; max-width:1500px; margin:auto; padding:var(--pad);
+    min-height:100dvh;
+  }
   .panel{background:var(--card);border:1px solid #232839;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
   .panel h1{font-size:18px;margin:4px 0 12px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
   .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
-  .btn{appearance:none;border:1px solid #2a3042;background:#1b2030;color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn{appearance:none;border:1px solid #2a3042;background:#1b2030;color:var(--fg);padding:10px 14px;border-radius:12px;cursor:pointer;min-height:40px}
   .btn:active{transform:translateY(1px)}
   .btn.secondary{background:#101522}
   .btn.toggle.active{outline:2px solid var(--accent)}
   .palette{display:flex;gap:10px}
-  .swatch{width:28px;height:28px;border-radius:50%;border:2px solid #2a3042;cursor:pointer}
+  .swatch{width:36px;height:36px;border-radius:50%;border:2px solid #2a3042;cursor:pointer}
   .swatch.active{outline:3px solid var(--accent)}
-  .grid{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100dvh - 40px)}
-  canvas{background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:100%}
+  .grid{display:grid;grid-template-rows:auto 1fr;gap:10px;min-height:400px}
+  canvas{
+    background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:100%;
+    touch-action:none; /* evita scroll al dibujar en móvil */
+  }
+  input[type="range"]{width:160px}
   .tips{font-size:12px;color:var(--muted);line-height:1.4}
-  .divider{height:1px;background:#232839;margin:10px 0}
+  .divider{height:1px;background:#232839;margin:12px 0}
   .small{font-size:12px}
   .right-top{display:flex;justify-content:space-between;align-items:center}
-  .pill{padding:4px 8px;border-radius:999px;border:1px solid #2a3042;background:#121622;color:var(--muted);font-size:12px}
+  .pill{padding:6px 10px;border-radius:999px;border:1px solid #2a3042;background:#121622;color:var(--muted);font-size:12px}
   .switch{display:flex;align-items:center;gap:8px}
-  .switch input{accent-color:#4f8cff;width:18px;height:18px}
+  .switch input{accent-color:#4f8cff;width:20px;height:20px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  /* ——— Responsive ——— */
+  @media (max-width: 860px){
+    :root{ --pad:12px }
+    .wrap{grid-template-columns:1fr; gap:12px}
+    .grid{min-height:auto}
+    /* el canvas tendrá una altura fija agradable en móvil */
+    .grid canvas{height:72vh}
+    .panel{padding:12px}
+    .btn{min-height:44px;padding:12px 16px;border-radius:14px}
+    .swatch{width:32px;height:32px}
+    input[type="range"]{width:200px}
+  }
 </style>
 </head>
 <body>
@@ -81,7 +104,7 @@
           <option value="9">9 × 9</option>
           <option value="12">12 × 12</option>
         </select>
-        <span class="label">Tamaño baldosa</span>
+        <span class="label">Baldosa</span>
         <select id="tileSelect" class="btn">
           <option value="96">96 px</option>
           <option value="128" selected>128 px</option>
@@ -91,7 +114,8 @@
         </select>
       </div>
 
-      <div class="row">
+      <div class="row actions">
+        <button id="undoBtn" class="btn secondary">↶ Deshacer</button>
         <button id="clear" class="btn">Limpiar baldosa</button>
         <button id="download" class="btn secondary">Guardar PNG</button>
       </div>
@@ -166,6 +190,7 @@ const toolPencil = document.getElementById("toolPencil");
 const toolEraser = document.getElementById("toolEraser");
 const rotOnlyChk = document.getElementById("rotOnly");
 const geomSelect = document.getElementById("geomSelect");
+const undoBtn = document.getElementById("undoBtn");
 
 /* ---------- Paleta ---------- */
 colors.forEach((c, i) => {
@@ -195,6 +220,7 @@ gridSelect.addEventListener("change", () => { gridN = +gridSelect.value; resizeA
 tileSelect.addEventListener("change", () => { tileSize = +tileSelect.value; resizeTilePreserving(); resizeAll(); render(); });
 
 clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
+undoBtn.addEventListener("click", () => { undo(); }); // ← NUEVO botón Deshacer
 
 downloadBtn.addEventListener("click", () => {
   const link = document.createElement("a");
@@ -237,10 +263,10 @@ function rebuildModes(){
 
 /* ---------- Formas ---------- */
 function hexPathCentered(ctx, R){
-  // Hex "flat-top" centrado en (0,0) — SIN offset de 90°
+  // Hex "flat-top" centrado en (0,0)
   ctx.beginPath();
   for (let i=0;i<6;i++){
-    const a = i * Math.PI/3; // 0,60,120,... (lados superior/inferior horizontales)
+    const a = i * Math.PI/3;
     const x = R * Math.cos(a), y = R * Math.sin(a);
     if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   }
@@ -294,7 +320,7 @@ function resizeTilePreserving() {
   };
 }
 
-/* ---------- Dibujo en tile central (clip para hex) ---------- */
+/* ---------- Dibujo (clip para hex) ---------- */
 let drawing = false; let lastX = 0, lastY = 0; let straight = false;
 
 function centerRect() {
@@ -303,7 +329,6 @@ function centerRect() {
     const cy = Math.floor(gridN / 2) * tileSize;
     return {x: cx, y: cy, w: tileSize, h: tileSize};
   }
-  // Hex: colocamos el tile central en el centro visual
   const W = gridN * tileSize, H = gridN * tileSize;
   const cx = Math.floor(W/2 - tileSize/2);
   const cy = Math.floor(H/2 - tileSize/2);
@@ -409,9 +434,10 @@ function redo() { if (historyIndex >= history.length - 1) return; historyIndex++
 /* ---------- Render ---------- */
 let mosaicCtx;
 function resizeAll() {
-  const cssW = Math.min(1400, Math.max(360, gridN * tileSize));
-  const cssH = Math.min(1000, Math.max(360, gridN * tileSize));
-  mosaicCtx = setupHiDPICanvas(mosaic, cssW, cssH);
+  const isMobile = window.innerWidth <= 860;
+  const targetW = isMobile ? Math.max(320, window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--pad'))*2)) : Math.min(1400, Math.max(360, gridN * tileSize));
+  const targetH = isMobile ? Math.round(window.innerHeight * 0.72) : Math.min(1000, Math.max(360, gridN * tileSize));
+  mosaicCtx = setupHiDPICanvas(mosaic, targetW, targetH);
   dimsText.textContent = `${geometry === 'square' ? gridN+'×'+gridN : gridN+' filas'} — baldosa ${tileSize}px`;
 }
 
@@ -423,6 +449,16 @@ function drawTileSquare(px, py, { rot=0, flipX=false, flipY=false } = {}) {
   if (flipX || flipY) { mosaicCtx.translate(ts/2, ts/2); mosaicCtx.scale(flipX?-1:1, flipY?-1:1); mosaicCtx.translate(-ts/2,-ts/2); }
   mosaicCtx.drawImage(tileCanvas, 0, 0);
   mosaicCtx.restore();
+}
+
+function hexPathCentered(ctx, R){ // redefine in render scope to use on canvas
+  ctx.beginPath();
+  for (let i=0;i<6;i++){
+    const a = i * Math.PI/3;
+    const x = R * Math.cos(a), y = R * Math.sin(a);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
 }
 
 function drawHexAt(cx, cy, { rot=0, flipX=false, flipY=false } = {}) {
@@ -438,7 +474,7 @@ function drawHexAt(cx, cy, { rot=0, flipX=false, flipY=false } = {}) {
   hexPathCentered(mosaicCtx, R);
   mosaicCtx.clip();
 
-  // Pequeño solape para evitar micro-grietas por AA (opcional)
+  // pequeño solape para evitar micro-grietas
   mosaicCtx.save();
   mosaicCtx.translate(-ts/2, -ts/2);
   mosaicCtx.scale(1.01, 1.01);
@@ -498,45 +534,40 @@ function renderHex(){
 
   // Parámetros hex flat-top
   const ts = tileSize;
-  const R  = ts/2;                  // radio al vértice
-  const dx = 1.5 * R;               // separación horizontal entre centros
-  const dy = Math.sqrt(3) * R;      // separación vertical entre filas
+  const R  = ts/2;
+  const dx = 1.5 * R;              // centros horizontales
+  const dy = Math.sqrt(3) * R;     // centros verticales
 
   // Centro visual
   const CW = gridN * tileSize, CH = gridN * tileSize;
   const originX = CW/2;
   const originY = CH/2;
 
-  // Bloque centrado
   const half = Math.floor(gridN/2);
   for (let col = -half; col <= half; col++){
     for (let row = -half; row <= half; row++){
       const cx = originX + col * dx;
       const cy = originY + row * dy + ((col & 1) ? dy/2 : 0);
 
-      // Transform según modo
       let rot=0, flipX=false, flipY=false;
       if (mode === "Igual") {
-        // nada
       } else if (mode === "Rotado 180°") {
         rot = ((row + col) % 2) ? 180 : 0;
       } else if (mode === "Rotado 60°") {
-        let k = ((row - col) % 6 + 6) % 6; // 0..5
-        rot = k * 60;
+        let k = ((row - col) % 6 + 6) % 6; rot = k * 60;
       } else if (mode === "Espejo vertical") {
         flipX = (col % 2) !== 0;
       } else if (mode === "Espejo horizontal") {
         flipY = (row % 2) !== 0;
       } else if (mode === "Espejo ajedrez") {
-        flipX = (col % 2) !== 0;
-        flipY = (row % 2) !== 0;
+        flipX = (col % 2) !== 0; flipY = (row % 2) !== 0;
       }
 
       drawHexAt(cx, cy, { rot, flipX, flipY });
     }
   }
 
-  // Contorno del hex central (guía)
+  // Guía del hex central
   mosaicCtx.save();
   mosaicCtx.strokeStyle = "rgba(79,140,255,.9)";
   mosaicCtx.lineWidth = 2;
@@ -552,7 +583,7 @@ function render(){
   else renderHex();
 }
 
-/* ---------- Eventos puntero ---------- */
+/* ---------- Puntero ---------- */
 mosaic.addEventListener("pointerdown", handlePointerDown);
 mosaic.addEventListener("pointermove", handlePointerMove);
 window.addEventListener("pointerup", handlePointerUp);
@@ -567,11 +598,10 @@ function ensureUI() { modePill.textContent = modes[modeIndex]; sizeVal.textConte
 ensureUI();
 initTile(); resizeAll(); render();
 
-// DPR/resize
+// Reajuste en cambios de tamaño/DPR
 let dpr = window.devicePixelRatio || 1;
 window.matchMedia(`(resolution: ${dpr}dppx)`).addEventListener("change", () => { dpr = window.devicePixelRatio || 1; resizeAll(); render(); });
 window.addEventListener("resize", () => { resizeAll(); render(); });
 </script>
 </body>
 </html>
-
