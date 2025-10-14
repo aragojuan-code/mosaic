@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mosaico — Cuadrados & Hexágonos</title>
+<style>
+  :root { --bg:#0f1115; --card:#151923; --fg:#e6e8ef; --muted:#99a1b3; --accent:#4f8cff; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);display:flex;min-height:100dvh}
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:20px;max-width:1500px;margin:auto;padding:20px;width:100%}
+  .panel{background:var(--card);border:1px solid #232839;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .panel h1{font-size:18px;margin:4px 0 12px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
+  .btn{appearance:none;border:1px solid #2a3042;background:#1b2030;color:var(--fg);padding:8px 12px;border-radius:10px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:#101522}
+  .btn.toggle.active{outline:2px solid var(--accent)}
+  .palette{display:flex;gap:10px}
+  .swatch{width:28px;height:28px;border-radius:50%;border:2px solid #2a3042;cursor:pointer}
+  .swatch.active{outline:3px solid var(--accent)}
+  .grid{display:grid;grid-template-rows:auto 1fr;gap:10px;height:calc(100dvh - 40px)}
+  canvas{background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:100%}
+  .tips{font-size:12px;color:var(--muted);line-height:1.4}
+  .divider{height:1px;background:#232839;margin:10px 0}
+  .small{font-size:12px}
+  .right-top{display:flex;justify-content:space-between;align-items:center}
+  .pill{padding:4px 8px;border-radius:999px;border:1px solid #2a3042;background:#121622;color:var(--muted);font-size:12px}
+  .switch{display:flex;align-items:center;gap:8px}
+  .switch input{accent-color:#4f8cff;width:18px;height:18px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>🧱 Diseñador de Baldosas</h1>
+
+      <div class="row">
+        <span class="label">Geometría</span>
+        <select id="geomSelect" class="btn">
+          <option value="square" selected>Cuadrados</option>
+          <option value="hex">Hexágonos</option>
+        </select>
+      </div>
+
+      <div class="row switch">
+        <input id="rotOnly" type="checkbox" checked />
+        <label for="rotOnly" class="label">Solo rotaciones (1 SKU)</label>
+      </div>
+
+      <div class="row">
+        <span class="label">Modo</span>
+        <button id="modeBtn" class="btn">Cambiar modo</button>
+        <span id="modePill" class="pill">Igual</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Herramienta</span>
+        <button id="toolPencil" class="btn toggle active">✏️ Lápiz</button>
+        <button id="toolEraser" class="btn toggle">🧽 Goma (E)</button>
+      </div>
+
+      <div class="row">
+        <span class="label">Color</span>
+        <div id="palette" class="palette"></div>
+      </div>
+
+      <div class="row">
+        <span class="label">Grosor</span>
+        <input id="size" type="range" min="1" max="40" value="8" />
+        <span id="sizeVal" class="pill">8 px</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Cuadrícula</span>
+        <select id="gridSelect" class="btn">
+          <option value="3">3 × 3</option>
+          <option value="5" selected>5 × 5</option>
+          <option value="7">7 × 7</option>
+          <option value="9">9 × 9</option>
+          <option value="12">12 × 12</option>
+        </select>
+        <span class="label">Tamaño baldosa</span>
+        <select id="tileSelect" class="btn">
+          <option value="96">96 px</option>
+          <option value="128" selected>128 px</option>
+          <option value="160">160 px</option>
+          <option value="192">192 px</option>
+          <option value="256">256 px</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="clear" class="btn">Limpiar baldosa</button>
+        <button id="download" class="btn secondary">Guardar PNG</button>
+      </div>
+
+      <div class="divider"></div>
+      <p class="tips">
+        Dibuja <strong>solo en la baldosa central</strong>. En <b>Hexágonos</b> el trazo se recorta dentro del hex (clip).
+      </p>
+      <p class="tips">Atajos: <kbd>Ctrl/Cmd+Z</kbd> deshacer, <kbd>Ctrl/Cmd+Y</kbd> rehacer, <kbd>Shift</kbd> líneas rectas, <kbd>E</kbd> goma.</p>
+    </aside>
+
+    <main class="grid">
+      <div class="right-top">
+        <span class="pill">Dibuja en el centro</span>
+        <span id="dims" class="small"></span>
+      </div>
+      <canvas id="mosaic" aria-label="Mosaico"></canvas>
+    </main>
+  </div>
+
+<script>
+/* ---------- HiDPI ---------- */
+function setupHiDPICanvas(canvas, cssW, cssH) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  canvas.style.width = cssW + "px";
+  canvas.style.height = cssH + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+/* ---------- Estado ---------- */
+const BG = "#0b0e15";
+const colors = ["#f6c445", "#0b5fff", "#d90429", "#2eb872"]; // amarillo, azul, rojo, verde
+let currentColor = colors[0];
+let lineWidth = 8;
+let gridN = 5;
+let tileSize = 128;
+let tool = "pencil"; // pencil | eraser
+let geometry = "square"; // square | hex
+
+// Modos por geometría
+const MODES_ROT_SQ = ["Igual","Rotado 180°","Rotado 90°"];
+const MODES_MIR_SQ = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
+
+const MODES_ROT_HEX = ["Igual","Rotado 180°","Rotado 60°"];
+const MODES_MIR_HEX = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
+
+let rotOnly = true;
+let modes = MODES_ROT_SQ.slice();
+let modeIndex = 0;
+
+// Historial (tile)
+const history = [];
+let historyIndex = -1;
+
+/* ---------- DOM ---------- */
+const mosaic = document.getElementById("mosaic");
+const gridSelect = document.getElementById("gridSelect");
+const tileSelect = document.getElementById("tileSelect");
+const palette = document.getElementById("palette");
+const clearBtn = document.getElementById("clear");
+const sizeRange = document.getElementById("size");
+const sizeVal = document.getElementById("sizeVal");
+const downloadBtn = document.getElementById("download");
+const dimsText = document.getElementById("dims");
+const modeBtn = document.getElementById("modeBtn");
+const modePill = document.getElementById("modePill");
+const toolPencil = document.getElementById("toolPencil");
+const toolEraser = document.getElementById("toolEraser");
+const rotOnlyChk = document.getElementById("rotOnly");
+const geomSelect = document.getElementById("geomSelect");
+
+/* ---------- Paleta ---------- */
+colors.forEach((c, i) => {
+  const s = document.createElement("button");
+  s.className = "swatch" + (i === 0 ? " active" : "");
+  s.style.background = c;
+  s.addEventListener("click", () => {
+    [...palette.children].forEach(el => el.classList.remove("active"));
+    s.classList.add("active");
+    currentColor = c;
+    tool = "pencil";
+    toggleToolButtons();
+  });
+  palette.appendChild(s);
+});
+
+function toggleToolButtons(){
+  toolPencil.classList.toggle("active", tool === "pencil");
+  toolEraser.classList.toggle("active", tool === "eraser");
+}
+toolPencil.addEventListener("click", () => { tool = "pencil"; toggleToolButtons(); });
+toolEraser.addEventListener("click", () => { tool = "eraser"; toggleToolButtons(); });
+
+sizeRange.addEventListener("input", () => { lineWidth = +sizeRange.value; sizeVal.textContent = `${lineWidth} px`; });
+
+gridSelect.addEventListener("change", () => { gridN = +gridSelect.value; resizeAll(); render(); });
+tileSelect.addEventListener("change", () => { tileSize = +tileSelect.value; resizeTilePreserving(); resizeAll(); render(); });
+
+clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
+
+downloadBtn.addEventListener("click", () => {
+  const link = document.createElement("a");
+  link.download = `mosaico_${geometry}_${gridN}x${gridN}_${tileSize}px_${modes[modeIndex].replace(/\s+/g,'_')}.png`;
+  link.href = mosaic.toDataURL("image/png");
+  link.click();
+});
+
+rotOnlyChk.addEventListener("change", () => {
+  rotOnly = rotOnlyChk.checked;
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  render();
+});
+
+geomSelect.addEventListener("change", () => {
+  geometry = geomSelect.value;
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  initTile();
+  resizeAll();
+  render();
+});
+
+modeBtn.addEventListener("click", () => {
+  modeIndex = (modeIndex + 1) % modes.length;
+  modePill.textContent = modes[modeIndex];
+  render();
+});
+
+function rebuildModes(){
+  if (geometry === "square") {
+    modes = rotOnly ? MODES_ROT_SQ.slice() : MODES_ROT_SQ.concat(MODES_MIR_SQ);
+  } else {
+    modes = rotOnly ? MODES_ROT_HEX.slice() : MODES_ROT_HEX.concat(MODES_MIR_HEX);
+  }
+}
+
+/* ---------- Formas ---------- */
+function hexPathCentered(ctx, R){
+  // Hex "flat-top" centrado en (0,0) — SIN offset de 90°
+  ctx.beginPath();
+  for (let i=0;i<6;i++){
+    const a = i * Math.PI/3; // 0,60,120,... (lados superior/inferior horizontales)
+    const x = R * Math.cos(a), y = R * Math.sin(a);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+
+/* ---------- Tile offscreen ---------- */
+const tileCanvas = document.createElement("canvas");
+const tileCtx = tileCanvas.getContext("2d", { willReadFrequently: true });
+
+function drawTileGuide(){
+  tileCtx.save();
+  tileCtx.strokeStyle = "rgba(255,255,255,.06)";
+  tileCtx.lineWidth = 1;
+  if (geometry === "square") {
+    tileCtx.strokeRect(0.5, 0.5, tileSize-1, tileSize-1);
+  } else {
+    tileCtx.translate(tileSize/2, tileSize/2);
+    const R = tileSize/2;
+    hexPathCentered(tileCtx, R);
+    tileCtx.stroke();
+  }
+  tileCtx.restore();
+}
+
+function initTile() {
+  tileCanvas.width = tileSize;
+  tileCanvas.height = tileSize;
+  clearTile();
+  drawTileGuide();
+  pushHistory(true);
+}
+
+function clearTile() {
+  tileCtx.clearRect(0, 0, tileSize, tileSize);
+  tileCtx.fillStyle = BG;
+  tileCtx.fillRect(0, 0, tileSize, tileSize);
+}
+
+function resizeTilePreserving() {
+  const img = new Image();
+  img.src = tileCanvas.toDataURL();
+  img.onload = () => {
+    tileCanvas.width = tileSize;
+    tileCanvas.height = tileSize;
+    clearTile();
+    tileCtx.drawImage(img, 0, 0, tileSize, tileSize);
+    drawTileGuide();
+    pushHistory(true);
+    render();
+  };
+}
+
+/* ---------- Dibujo en tile central (clip para hex) ---------- */
+let drawing = false; let lastX = 0, lastY = 0; let straight = false;
+
+function centerRect() {
+  if (geometry === "square") {
+    const cx = Math.floor(gridN / 2) * tileSize;
+    const cy = Math.floor(gridN / 2) * tileSize;
+    return {x: cx, y: cy, w: tileSize, h: tileSize};
+  }
+  // Hex: colocamos el tile central en el centro visual
+  const W = gridN * tileSize, H = gridN * tileSize;
+  const cx = Math.floor(W/2 - tileSize/2);
+  const cy = Math.floor(H/2 - tileSize/2);
+  return {x: cx, y: cy, w: tileSize, h: tileSize};
+}
+
+function inCenter(px, py) {
+  const c = centerRect();
+  return px >= c.x && px <= c.x + c.w && py >= c.y && py <= c.y + c.h;
+}
+
+function toTileCoords(px, py) {
+  const c = centerRect();
+  return { x: px - c.x, y: py - c.y };
+}
+
+function beginStrokeStyle(){
+  tileCtx.lineWidth = lineWidth;
+  tileCtx.lineCap = "round";
+  tileCtx.lineJoin = "round";
+  if (tool === "eraser") {
+    tileCtx.globalCompositeOperation = "destination-out";
+    tileCtx.strokeStyle = "rgba(0,0,0,1)";
+  } else {
+    tileCtx.globalCompositeOperation = "source-over";
+    tileCtx.strokeStyle = currentColor;
+  }
+}
+
+function applyHexClipForTileCtx(){
+  tileCtx.save();
+  tileCtx.translate(tileSize/2, tileSize/2);
+  const R = tileSize/2;
+  hexPathCentered(tileCtx, R);
+  tileCtx.clip();
+  tileCtx.translate(-tileSize/2, -tileSize/2);
+}
+
+function handlePointerDown(e) {
+  const pos = getPos(e);
+  if (!inCenter(pos.x, pos.y)) return;
+  drawing = true; straight = e.shiftKey === true;
+  const {x, y} = toTileCoords(pos.x, pos.y);
+  lastX = x; lastY = y;
+
+  if (geometry === "hex") applyHexClipForTileCtx();
+  beginStrokeStyle();
+  tileCtx.beginPath(); tileCtx.moveTo(x, y);
+  render(); e.preventDefault();
+}
+
+function handlePointerMove(e) {
+  if (!drawing) return;
+  const pos = getPos(e); if (!inCenter(pos.x, pos.y)) return;
+  let {x, y} = toTileCoords(pos.x, pos.y);
+  if (straight) {
+    const dx = Math.abs(x - lastX), dy = Math.abs(y - lastY);
+    if (dx > dy) y = lastY; else x = lastX;
+  }
+  tileCtx.lineTo(x, y); tileCtx.stroke();
+  lastX = x; lastY = y; render(); e.preventDefault();
+}
+
+function handlePointerUp() {
+  if (!drawing) return;
+  drawing = false;
+  tileCtx.closePath();
+  if (geometry === "hex") tileCtx.restore(); // salir del clip
+  tileCtx.globalCompositeOperation = "source-over";
+  pushHistory();
+  render();
+}
+
+function getPos(e) {
+  const rect = mosaic.getBoundingClientRect();
+  const x = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const y = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  return { x, y };
+}
+
+/* ---------- Historial ---------- */
+function pushHistory(reset=false) {
+  const data = tileCanvas.toDataURL("image/png");
+  if (reset) { history.length = 0; historyIndex = -1; }
+  history.splice(historyIndex + 1);
+  history.push(data);
+  historyIndex++;
+}
+function restoreFrom(dataURL) {
+  const img = new Image();
+  img.onload = () => { clearTile(); tileCtx.drawImage(img, 0, 0); drawTileGuide(); render(); };
+  img.src = dataURL;
+}
+window.addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === "z") { e.shiftKey ? redo() : undo(); e.preventDefault(); }
+  else if (mod && e.key.toLowerCase() === "y") { redo(); e.preventDefault(); }
+  else if (e.key.toLowerCase() === "e") { tool = (tool === "eraser") ? "pencil" : "eraser"; toggleToolButtons(); }
+});
+function undo() { if (historyIndex <= 0) return; historyIndex--; restoreFrom(history[historyIndex]); }
+function redo() { if (historyIndex >= history.length - 1) return; historyIndex++; restoreFrom(history[historyIndex]); }
+
+/* ---------- Render ---------- */
+let mosaicCtx;
+function resizeAll() {
+  const cssW = Math.min(1400, Math.max(360, gridN * tileSize));
+  const cssH = Math.min(1000, Math.max(360, gridN * tileSize));
+  mosaicCtx = setupHiDPICanvas(mosaic, cssW, cssH);
+  dimsText.textContent = `${geometry === 'square' ? gridN+'×'+gridN : gridN+' filas'} — baldosa ${tileSize}px`;
+}
+
+function drawTileSquare(px, py, { rot=0, flipX=false, flipY=false } = {}) {
+  const ts = tileSize;
+  mosaicCtx.save();
+  mosaicCtx.translate(px, py);
+  if (rot) { mosaicCtx.translate(ts/2, ts/2); mosaicCtx.rotate(rot*Math.PI/180); mosaicCtx.translate(-ts/2,-ts/2); }
+  if (flipX || flipY) { mosaicCtx.translate(ts/2, ts/2); mosaicCtx.scale(flipX?-1:1, flipY?-1:1); mosaicCtx.translate(-ts/2,-ts/2); }
+  mosaicCtx.drawImage(tileCanvas, 0, 0);
+  mosaicCtx.restore();
+}
+
+function drawHexAt(cx, cy, { rot=0, flipX=false, flipY=false } = {}) {
+  const ts = tileSize;
+  const R  = ts/2;
+
+  mosaicCtx.save();
+  mosaicCtx.translate(cx, cy);
+  if (rot) mosaicCtx.rotate(rot * Math.PI/180);
+  if (flipX || flipY) mosaicCtx.scale(flipX?-1:1, flipY?-1:1);
+
+  // Clip al hex centrado (flat-top)
+  hexPathCentered(mosaicCtx, R);
+  mosaicCtx.clip();
+
+  // Pequeño solape para evitar micro-grietas por AA (opcional)
+  mosaicCtx.save();
+  mosaicCtx.translate(-ts/2, -ts/2);
+  mosaicCtx.scale(1.01, 1.01);
+  mosaicCtx.drawImage(tileCanvas, 0, 0, ts, ts);
+  mosaicCtx.restore();
+
+  mosaicCtx.restore();
+}
+
+function renderSquares(){
+  const W = gridN * tileSize, H = gridN * tileSize;
+  mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
+  mosaicCtx.fillStyle = BG; mosaicCtx.fillRect(0,0,W,H);
+  const mode = modes[modeIndex];
+
+  for (let gy=0; gy<gridN; gy++){
+    for (let gx=0; gx<gridN; gx++){
+      const px = gx*tileSize, py = gy*tileSize;
+      if (mode === "Igual") {
+        drawTileSquare(px, py, {});
+      } else if (mode === "Rotado 180°") {
+        const rot = ((gx + gy) % 2) ? 180 : 0;
+        drawTileSquare(px, py, { rot });
+      } else if (mode === "Rotado 90°") {
+        const rot = ((gx + gy) % 4) * 90;
+        drawTileSquare(px, py, { rot });
+      } else if (mode === "Espejo vertical") {
+        drawTileSquare(px, py, { flipX: (gx % 2) === 1 });
+      } else if (mode === "Espejo horizontal") {
+        drawTileSquare(px, py, { flipY: (gy % 2) === 1 });
+      } else if (mode === "Espejo ajedrez") {
+        drawTileSquare(px, py, { flipX: (gx % 2) === 1, flipY: (gy % 2) === 1 });
+      }
+    }
+  }
+
+  // Grid y centro
+  mosaicCtx.strokeStyle = "rgba(255,255,255,.08)"; mosaicCtx.lineWidth = 1;
+  for (let i=0;i<=gridN;i++){
+    const p = i*tileSize + .5;
+    mosaicCtx.beginPath(); mosaicCtx.moveTo(p,0); mosaicCtx.lineTo(p,H); mosaicCtx.stroke();
+    mosaicCtx.beginPath(); mosaicCtx.moveTo(0,p); mosaicCtx.lineTo(W,p); mosaicCtx.stroke();
+  }
+  const c = centerRect();
+  mosaicCtx.strokeStyle = "rgba(79,140,255,.9)";
+  mosaicCtx.lineWidth = 2;
+  mosaicCtx.setLineDash([6,6]);
+  mosaicCtx.strokeRect(c.x+1, c.y+1, c.w-2, c.h-2);
+  mosaicCtx.setLineDash([]);
+}
+
+function renderHex(){
+  mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
+  const W = mosaic.width, H = mosaic.height;
+  mosaicCtx.fillStyle = BG; mosaicCtx.fillRect(0,0,W,H);
+  const mode = modes[modeIndex];
+
+  // Parámetros hex flat-top
+  const ts = tileSize;
+  const R  = ts/2;                  // radio al vértice
+  const dx = 1.5 * R;               // separación horizontal entre centros
+  const dy = Math.sqrt(3) * R;      // separación vertical entre filas
+
+  // Centro visual
+  const CW = gridN * tileSize, CH = gridN * tileSize;
+  const originX = CW/2;
+  const originY = CH/2;
+
+  // Bloque centrado
+  const half = Math.floor(gridN/2);
+  for (let col = -half; col <= half; col++){
+    for (let row = -half; row <= half; row++){
+      const cx = originX + col * dx;
+      const cy = originY + row * dy + ((col & 1) ? dy/2 : 0);
+
+      // Transform según modo
+      let rot=0, flipX=false, flipY=false;
+      if (mode === "Igual") {
+        // nada
+      } else if (mode === "Rotado 180°") {
+        rot = ((row + col) % 2) ? 180 : 0;
+      } else if (mode === "Rotado 60°") {
+        let k = ((row - col) % 6 + 6) % 6; // 0..5
+        rot = k * 60;
+      } else if (mode === "Espejo vertical") {
+        flipX = (col % 2) !== 0;
+      } else if (mode === "Espejo horizontal") {
+        flipY = (row % 2) !== 0;
+      } else if (mode === "Espejo ajedrez") {
+        flipX = (col % 2) !== 0;
+        flipY = (row % 2) !== 0;
+      }
+
+      drawHexAt(cx, cy, { rot, flipX, flipY });
+    }
+  }
+
+  // Contorno del hex central (guía)
+  mosaicCtx.save();
+  mosaicCtx.strokeStyle = "rgba(79,140,255,.9)";
+  mosaicCtx.lineWidth = 2;
+  mosaicCtx.setLineDash([6,6]);
+  mosaicCtx.translate(originX, originY);
+  hexPathCentered(mosaicCtx, R);
+  mosaicCtx.stroke();
+  mosaicCtx.restore();
+}
+
+function render(){
+  if (geometry === "square") renderSquares();
+  else renderHex();
+}
+
+/* ---------- Eventos puntero ---------- */
+mosaic.addEventListener("pointerdown", handlePointerDown);
+mosaic.addEventListener("pointermove", handlePointerMove);
+window.addEventListener("pointerup", handlePointerUp);
+mosaic.addEventListener("touchstart", handlePointerDown, {passive:false});
+mosaic.addEventListener("touchmove", handlePointerMove, {passive:false});
+window.addEventListener("touchend", handlePointerUp);
+
+/* ---------- Init ---------- */
+rebuildModes();
+setupHiDPICanvas(mosaic, 800, 600); // inicial
+function ensureUI() { modePill.textContent = modes[modeIndex]; sizeVal.textContent = `${lineWidth} px`; }
+ensureUI();
+initTile(); resizeAll(); render();
+
+// DPR/resize
+let dpr = window.devicePixelRatio || 1;
+window.matchMedia(`(resolution: ${dpr}dppx)`).addEventListener("change", () => { dpr = window.devicePixelRatio || 1; resizeAll(); render(); });
+window.addEventListener("resize", () => { resizeAll(); render(); });
+</script>
+</body>
+</html>
