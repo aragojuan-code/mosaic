@@ -24,25 +24,30 @@
   .topbar{display:flex;align-items:center;justify-content:space-between}
   .dims{font-size:12px;color:var(--muted)}
 
-  /* Canvas separado en su wrap y con z-index bajo */
   .canvas-wrap{position:relative;z-index:1}
   canvas{
     background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;
     width:100%;height:auto;touch-action:none;position:relative;z-index:1
   }
 
-  /* Paleta + barra vertical de iconos; forzamos z-index alto */
+  /* Paleta + barra de iconos en dos columnas */
   .underbar{
-    display:grid;grid-template-columns:1fr 44px;gap:10px;align-items:start;
-    position:relative;z-index:5
+    display:grid;
+    grid-template-columns: 1fr 92px; /* dos columnas de iconos */
+    gap:10px; align-items:start; position:relative; z-index:5;
   }
   .palette-grid{
-    display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #232839;border-radius:12px;background:#101520
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding:8px; border:1px solid #232839; border-radius:12px; background:#101520;
   }
   .swatch{width:28px;height:28px;border-radius:6px;border:2px solid var(--ring);cursor:pointer}
   .swatch.active{outline:2px solid var(--accent)}
 
-  .vtools{display:flex;flex-direction:column;gap:8px;align-items:stretch;justify-content:flex-start}
+  .vtools{
+    display:grid;
+    grid-template-columns: 44px 44px;
+    gap:8px;
+  }
   .icon-btn{
     width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;
     border:1px solid var(--ring);background:#1b2030;color:var(--fg);
@@ -60,7 +65,8 @@
 
   @media (max-width:860px){
     .wrap{padding:10px}
-    .underbar{grid-template-columns:1fr 42px}
+    .underbar{grid-template-columns: 1fr 88px}
+    .vtools{grid-template-columns: 42px 42px}
     .icon-btn{width:42px;height:42px}
     .swatch{width:26px;height:26px}
   }
@@ -85,14 +91,16 @@
 
       <div class="underbar">
         <div id="palette" class="palette-grid" aria-label="Colores"></div>
+
+        <!-- Orden: undo, lápiz, goma, modo, rotaciones, cuadrícula y (al final) cuadrado/hexágono -->
         <div class="vtools" aria-label="Herramientas">
           <button id="undoBtn" class="icon-btn" title="Deshacer" aria-label="Deshacer">↶</button>
           <button id="toolPencil" class="icon-btn active" title="Lápiz" aria-label="Lápiz">✏️</button>
           <button id="toolEraser" class="icon-btn" title="Goma" aria-label="Goma">🧽</button>
-          <button id="geomBtn" class="icon-btn" title="Tipo (Cuadrado/Hexágono)" aria-label="Tipo">◻️</button>
           <button id="modeBtn" class="icon-btn" title="Modo" aria-label="Modo">🔄</button>
           <button id="rotBtn" class="icon-btn active" title="Solo rotaciones" aria-label="Solo rotaciones">⟳</button>
           <button id="gridBtn" class="icon-btn" title="Cuadrícula" aria-label="Cuadrícula">#️⃣</button>
+          <button id="geomBtn" class="icon-btn" title="Tipo (Cuadrado/Hexágono)" aria-label="Tipo">◻️</button>
         </div>
       </div>
 
@@ -130,14 +138,14 @@ const COLORS = [
 let currentColor = COLORS[3];
 let lineWidth = 8;
 let gridN = 3;
-const tileSize = 128;         // fijo
-let tool = "pencil";          // pencil | eraser
-let geometry = "square";      // square | hex
+const tileSize = 128;
+let tool = "pencil";
+let geometry = "square";
 let rotOnly = true;
-let viewScale = 1;            // ← única variable (no duplicada)
+let viewScale = 1;
 let mosaicCtx;
 
-// modos
+/* modos */
 const MODES_ROT_SQ = ["Igual","Rotado 180°","Rotado 90°"];
 const MODES_MIR_SQ = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
 const MODES_ROT_HEX = ["Igual","Rotado 180°","Rotado 60°"];
@@ -145,7 +153,7 @@ const MODES_MIR_HEX = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
 let modes = MODES_ROT_SQ.slice();
 let modeIndex = 0;
 
-// historial
+/* historial */
 const history = []; let historyIndex = -1;
 
 /* ---------- DOM ---------- */
@@ -192,14 +200,6 @@ toolEraser.addEventListener("click", ()=>{ tool="eraser"; updateToolButtons(); }
 /* ---------- Iconos ---------- */
 undoBtn.addEventListener("click", () => undo());
 
-geomBtn.addEventListener("click", () => {
-  geometry = (geometry === "square") ? "hex" : "square";
-  geomBtn.textContent = (geometry === "square") ? "◻️" : "⬡";
-  rebuildModes(); modeIndex = 0;
-  modePill.textContent = modes[modeIndex];
-  initTile(); resizeAll(); render();
-});
-
 modeBtn.addEventListener("click", () => {
   modeIndex = (modeIndex + 1) % modes.length;
   modePill.textContent = modes[modeIndex];
@@ -219,6 +219,17 @@ gridBtn.addEventListener("click", () => {
   const idx = GRID_STEPS.indexOf(gridN);
   gridN = GRID_STEPS[(idx+1) % GRID_STEPS.length];
   resizeAll(); render();
+});
+
+/* CONFIRMACIÓN al cambiar de cuadrado/hexágono */
+geomBtn.addEventListener("click", () => {
+  const msg = "Cambiar la geometría borrará la baldosa actual. ¿Quieres continuar?";
+  if (!window.confirm(msg)) return;
+  geometry = (geometry === "square") ? "hex" : "square";
+  geomBtn.textContent = (geometry === "square") ? "◻️" : "⬡";
+  rebuildModes(); modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  initTile(); resizeAll(); render();
 });
 
 function rebuildModes(){
@@ -241,7 +252,6 @@ function hexPathCentered(ctx, R){
   }
   ctx.closePath();
 }
-
 function drawTileGuide(){
   tileCtx.save();
   tileCtx.strokeStyle = "rgba(255,255,255,.06)";
@@ -256,7 +266,6 @@ function drawTileGuide(){
   }
   tileCtx.restore();
 }
-
 function initTile(){
   tileCanvas.width = tileSize;
   tileCanvas.height = tileSize;
@@ -372,7 +381,7 @@ function redo(){ if (historyIndex>=history.length-1) return; historyIndex++; res
 function resizeAll(){
   const logicalW = gridN * tileSize;
   const logicalH = gridN * tileSize;
-  const container = mosaic.parentElement; // .canvas-wrap
+  const container = mosaic.parentElement;
   const availW = Math.max(280, container.clientWidth);
   const availH = Math.max(240, Math.round(window.innerHeight * (window.innerWidth<860 ? 0.64 : 0.56)));
   viewScale = Math.min(availW / logicalW, availH / logicalH, 1);
@@ -382,7 +391,6 @@ function resizeAll(){
   const geomTxt = geometry === 'square' ? `${gridN}×${gridN}` : `${gridN} filas`;
   dimsText.textContent = `${geomTxt} · escala ${Math.round(viewScale*100)}%`;
 }
-
 function drawTileSquare(px,py, {rot=0, flipX=false, flipY=false}={}){
   const ts = tileSize;
   mosaicCtx.save();
@@ -407,7 +415,17 @@ function drawHexAt(cx,cy,{rot=0,flipX=false,flipY=false}={}){
   mosaicCtx.restore();
   mosaicCtx.restore();
 }
-
+function centerRect(){
+  if (geometry === "square"){
+    const cx = Math.floor(gridN/2) * tileSize;
+    const cy = Math.floor(gridN/2) * tileSize;
+    return {x:cx,y:cy,w:tileSize,h:tileSize};
+  }
+  const W = gridN*tileSize, H = gridN*tileSize;
+  const cx = Math.floor(W/2 - tileSize/2);
+  const cy = Math.floor(H/2 - tileSize/2);
+  return {x:cx,y:cy,w:tileSize,h:tileSize};
+}
 function renderSquares(){
   const W = gridN * tileSize, H = gridN * tileSize;
   mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
@@ -436,19 +454,16 @@ function renderSquares(){
   mosaicCtx.setLineDash([6,6]); mosaicCtx.strokeRect(c.x+1, c.y+1, c.w-2, c.h-2); mosaicCtx.setLineDash([]);
   mosaicCtx.restore();
 }
-
 function renderHex(){
   const W = gridN * tileSize, H = gridN * tileSize;
   mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
   mosaicCtx.save(); mosaicCtx.scale(viewScale, viewScale);
   mosaicCtx.fillStyle = BG; mosaicCtx.fillRect(0,0,W,H);
   const mode = modes[modeIndex];
-
   const ts = tileSize, R = ts/2;
   const dx = 1.5 * R, dy = Math.sqrt(3) * R;
   const CW = gridN * tileSize, CH = gridN * tileSize;
   const originX = CW/2, originY = CH/2;
-
   const half = Math.floor(gridN/2);
   for (let col=-half; col<=half; col++){
     for (let row=-half; row<=half; row++){
@@ -469,11 +484,7 @@ function renderHex(){
   mosaicCtx.restore(); mosaicCtx.setLineDash([]);
   mosaicCtx.restore();
 }
-
-function render(){
-  if (!mosaicCtx) return;
-  if (geometry === "square") renderSquares(); else renderHex();
-}
+function render(){ if (!mosaicCtx) return; if (geometry === "square") renderSquares(); else renderHex(); }
 
 /* ---------- Eventos ---------- */
 mosaic.addEventListener("pointerdown", handlePointerDown);
@@ -483,7 +494,13 @@ mosaic.addEventListener("touchstart", handlePointerDown, {passive:false});
 mosaic.addEventListener("touchmove", handlePointerMove, {passive:false});
 window.addEventListener("touchend", handlePointerUp);
 
-clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
+/* CONFIRMACIÓN en Limpiar */
+clearBtn.addEventListener("click", () => {
+  const msg = "Se borrará la baldosa actual. ¿Quieres continuar?";
+  if (!window.confirm(msg)) return;
+  clearTile(); pushHistory(); render();
+});
+
 downloadBtn.addEventListener("click", () => {
   const link = document.createElement("a");
   link.download = `baldosas_${geometry}_${gridN}x${gridN}_${modes[modeIndex].replace(/\s+/g,'_')}.png`;
@@ -496,6 +513,12 @@ function ensureUI(){
   modePill.textContent = modes[modeIndex];
   geomBtn.textContent = (geometry === "square") ? "◻️" : "⬡";
   rotBtn.classList.toggle("active", rotOnly);
+}
+function rebuildModes(){
+  if (geometry === "square")
+    modes = rotOnly ? MODES_ROT_SQ.slice() : MODES_ROT_SQ.concat(MODES_MIR_SQ);
+  else
+    modes = rotOnly ? MODES_ROT_HEX.slice() : MODES_ROT_HEX.concat(MODES_MIR_HEX);
 }
 buildPalette();
 ensureUI();
