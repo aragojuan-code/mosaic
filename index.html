@@ -3,295 +3,280 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Mosaico — móvil</title>
+<title>Laboratorio de mosaicos</title>
 <style>
-  :root{
+  :root {
     --bg:#0f1115; --card:#151923; --fg:#e6e8ef; --muted:#99a1b3; --accent:#4f8cff;
-    --pad:12px; --toolbar-h:70px; --sheet-maxh:60vh;
+    --pad:20px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-
-  /* Layout principal */
-  .app{display:grid; grid-template-rows:auto 1fr var(--toolbar-h); min-height:100dvh}
-  header{padding:8px var(--pad); display:flex; align-items:center; gap:10px; border-bottom:1px solid #232839; background:linear-gradient(180deg,#121622,transparent)}
-  header h1{font-size:16px; margin:0; color:#eaeef9}
-  .stage{position:relative; padding:var(--pad); padding-bottom:calc(var(--pad));}
-  .canvas-wrap{max-width:1100px; margin:0 auto; border-radius:16px; overflow:hidden; border:1px solid #232839; background:#0b0e15}
-  canvas{display:block; width:100%; height:72vh; touch-action:none}
-
-  /* Toolbar inferior */
-  .toolbar{position:sticky; bottom:0; border-top:1px solid #232839; background:rgba(16,20,34,.9); backdrop-filter: blur(6px);}
-  .tools{height:var(--toolbar-h); display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:6px; padding:8px var(--pad)}
-  .tool{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#cfd6ea; text-decoration:none; user-select:none; -webkit-tap-highlight-color:transparent; border-radius:12px; cursor:pointer}
-  .tool:active{transform:translateY(1px)}
-  .tool .ic{font-size:20px; line-height:1}
-  .tool .txt{font-size:10px; color:var(--muted)}
-  .tool.active{outline:2px solid var(--accent)}
-
-  /* Sheets (bottom drawers) */
-  .sheet-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.4); opacity:0; pointer-events:none; transition:.2s opacity}
-  .sheet{position:fixed; left:0; right:0; bottom:-100%; background:var(--card); border-radius:16px 16px 0 0; border-top:1px solid #232839; box-shadow:0 -20px 40px rgba(0,0,0,.35); max-height:var(--sheet-maxh); overflow:auto; transition:.25s transform; transform:translateY(100%)}
-  .sheet.open{transform:translateY(0)}
-  .sheet-backdrop.open{opacity:1; pointer-events:auto}
-  .sheet .handle{height:18px; display:flex; align-items:center; justify-content:center}
-  .sheet .handle span{width:40px; height:4px; background:#2a3042; border-radius:8px}
-  .sheet .body{padding:10px var(--pad) 16px}
-  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
-  .label{color:var(--muted); font-size:12px}
-  .btn{appearance:none; border:1px solid #2a3042; background:#1b2030; color:var(--fg); padding:10px 14px; border-radius:12px; cursor:pointer; min-height:40px}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{
+    display:grid; grid-template-columns:340px 1fr; gap:20px; max-width:1500px; margin:auto; padding:var(--pad);
+    min-height:100dvh;
+  }
+  .panel{background:var(--card);border:1px solid #232839;border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .panel h1{font-size:18px;margin:4px 0 12px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
+  .btn{appearance:none;border:1px solid #2a3042;background:#1b2030;color:var(--fg);padding:10px 14px;border-radius:12px;cursor:pointer;min-height:40px}
   .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:#101522}
   .btn.toggle.active{outline:2px solid var(--accent)}
-  .chip{padding:8px 12px; border:1px solid #2a3042; border-radius:999px; cursor:pointer}
-  .chip.active{background:#101522; outline:2px solid var(--accent)}
-  .swatches{display:flex; gap:12px}
-  .swatch{width:36px; height:36px; border-radius:50%; border:2px solid #2a3042; cursor:pointer}
+  .palette{display:flex;gap:10px}
+  .swatch{width:36px;height:36px;border-radius:50%;border:2px solid #2a3042;cursor:pointer}
   .swatch.active{outline:3px solid var(--accent)}
-  input[type="range"]{width:200px}
-  .muted{color:var(--muted); font-size:12px}
-
-  /* Desktop mejora */
-  @media (min-width: 900px){
-    canvas{height:76vh}
-    header h1{font-size:18px}
+  .grid{display:grid;grid-template-rows:auto 1fr;gap:10px;min-height:400px}
+  canvas{
+    background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:100%;
+    touch-action:none; /* evita scroll al dibujar en móvil */
+  }
+  input[type="range"]{width:160px}
+  .tips{font-size:12px;color:var(--muted);line-height:1.4}
+  .divider{height:1px;background:#232839;margin:12px 0}
+  .small{font-size:12px}
+  .right-top{display:flex;justify-content:space-between;align-items:center}
+  .pill{padding:6px 10px;border-radius:999px;border:1px solid #2a3042;background:#121622;color:var(--muted);font-size:12px}
+  .switch{display:flex;align-items:center;gap:8px}
+  .switch input{accent-color:#4f8cff;width:20px;height:20px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  /* ——— Responsive ——— */
+  @media (max-width: 860px){
+    :root{ --pad:12px }
+    .wrap{grid-template-columns:1fr; gap:12px}
+    .grid{min-height:auto}
+    /* el canvas tendrá una altura fija agradable en móvil */
+    .grid canvas{height:72vh}
+    .panel{padding:12px}
+    .btn{min-height:44px;padding:12px 16px;border-radius:14px}
+    .swatch{width:32px;height:32px}
+    input[type="range"]{width:200px}
   }
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <h1>🧱 Diseñador de Baldosas</h1>
-    <span id="modePill" class="chip" style="margin-left:auto">Igual</span>
-  </header>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>🧱 Diseñador de Baldosas</h1>
 
-  <main class="stage">
-    <div class="canvas-wrap">
-      <canvas id="mosaic" aria-label="Mosaico"></canvas>
-    </div>
-  </main>
-
-  <!-- Toolbar inferior -->
-  <footer class="toolbar">
-    <div class="tools">
-      <button class="tool" data-sheet="color"><span class="ic">🎨</span><span class="txt">Color</span></button>
-      <button class="tool" data-sheet="mode"><span class="ic">🧭</span><span class="txt">Modo</span></button>
-      <button class="tool" data-sheet="geom"><span class="ic">🔷</span><span class="txt">Figura</span></button>
-      <button class="tool" data-sheet="grid"><span class="ic">#️⃣</span><span class="txt">Cuadrícula</span></button>
-      <button id="eraserBtn" class="tool"><span class="ic">🧽</span><span class="txt">Goma</span></button>
-      <button id="undoBtn" class="tool"><span class="ic">↶</span><span class="txt">Deshacer</span></button>
-      <button id="redoBtn" class="tool"><span class="ic">↷</span><span class="txt">Rehacer</span></button>
-      <button id="clearBtn" class="tool"><span class="ic">🗑️</span><span class="txt">Limpiar</span></button>
-      <button id="saveBtn" class="tool"><span class="ic">💾</span><span class="txt">PNG</span></button>
-    </div>
-  </footer>
-
-  <!-- Backdrop y S HEETS -->
-  <div id="backdrop" class="sheet-backdrop"></div>
-
-  <!-- Sheet: Color -->
-  <section id="sheet-color" class="sheet" aria-hidden="true">
-    <div class="handle"><span></span></div>
-    <div class="body">
-      <div class="row"><span class="label">Colores rápidos</span></div>
-      <div id="swatches" class="swatches"></div>
       <div class="row">
-        <span class="label">Personalizar</span>
-        <input id="colorPick" type="color" value="#f6c445" class="btn" />
+        <span class="label">Geometría</span>
+        <select id="geomSelect" class="btn">
+          <option value="square" selected>Cuadrados</option>
+          <option value="hex">Hexágonos</option>
+        </select>
+      </div>
+
+      <div class="row switch">
+        <input id="rotOnly" type="checkbox" checked />
+        <label for="rotOnly" class="label">Solo rotaciones (1 SKU)</label>
+      </div>
+
+      <div class="row">
+        <span class="label">Modo</span>
+        <button id="modeBtn" class="btn">Cambiar modo</button>
+        <span id="modePill" class="pill">Igual</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Herramienta</span>
+        <button id="toolPencil" class="btn toggle active">✏️ Lápiz</button>
+        <button id="toolEraser" class="btn toggle">🧽 Goma (E)</button>
+      </div>
+
+      <div class="row">
+        <span class="label">Color</span>
+        <div id="palette" class="palette"></div>
+      </div>
+
+      <div class="row">
         <span class="label">Grosor</span>
         <input id="size" type="range" min="1" max="40" value="8" />
-        <span id="sizeVal" class="chip">8 px</span>
+        <span id="sizeVal" class="pill">8 px</span>
       </div>
-    </div>
-  </section>
 
-  <!-- Sheet: Modo -->
-  <section id="sheet-mode" class="sheet" aria-hidden="true">
-    <div class="handle"><span></span></div>
-    <div class="body">
       <div class="row">
-        <label class="label" style="display:flex; align-items:center; gap:8px">
-          <input id="rotOnly" type="checkbox" checked />
-          Solo rotaciones (1 SKU)
-        </label>
+        <span class="label">Cuadrícula</span>
+        <select id="gridSelect" class="btn">
+          <option value="3">3 × 3</option>
+          <option value="5" selected>5 × 5</option>
+          <option value="7">7 × 7</option>
+          <option value="9">9 × 9</option>
+          <option value="12">12 × 12</option>
+        </select>
+        <span class="label">Baldosa</span>
+        <select id="tileSelect" class="btn">
+          <option value="96">96 px</option>
+          <option value="128" selected>128 px</option>
+          <option value="160">160 px</option>
+          <option value="192">192 px</option>
+          <option value="256">256 px</option>
+        </select>
       </div>
-      <div class="row"><span class="label">Selecciona modo</span></div>
-      <div id="modesWrap" class="row"></div>
-      <p class="muted">Con 2 SKUs verás opciones de espejo.</p>
-    </div>
-  </section>
 
-  <!-- Sheet: Geometría -->
-  <section id="sheet-geom" class="sheet" aria-hidden="true">
-    <div class="handle"><span></span></div>
-    <div class="body">
-      <div class="row"><span class="label">Figura de la teselación</span></div>
-      <div class="row">
-        <button class="chip" data-geom="square">▢ Cuadrados</button>
-        <button class="chip" data-geom="hex">⬡ Hexágonos</button>
+      <div class="row actions">
+        <button id="undoBtn" class="btn secondary">↶ Deshacer</button>
+        <button id="clear" class="btn">Limpiar baldosa</button>
+        <button id="download" class="btn secondary">Guardar PNG</button>
       </div>
-    </div>
-  </section>
 
-  <!-- Sheet: Cuadrícula -->
-  <section id="sheet-grid" class="sheet" aria-hidden="true">
-    <div class="handle"><span></span></div>
-    <div class="body">
-      <div class="row"><span class="label">Tamaño de cuadrícula</span></div>
-      <div class="row">
-        <input id="gridRange" type="range" min="3" max="12" step="1" value="9" />
-        <span id="gridVal" class="chip">9 × 9</span>
+      <div class="divider"></div>
+      <p class="tips">
+        Dibuja <strong>solo en la baldosa central</strong>. En <b>Hexágonos</b> el trazo se recorta dentro del hex (clip).
+      </p>
+      <p class="tips">Atajos: <kbd>Ctrl/Cmd+Z</kbd> deshacer, <kbd>Ctrl/Cmd+Y</kbd> rehacer, <kbd>Shift</kbd> líneas rectas, <kbd>E</kbd> goma.</p>
+    </aside>
+
+    <main class="grid">
+      <div class="right-top">
+        <span class="pill">Dibuja en el centro</span>
+        <span id="dims" class="small"></span>
       </div>
-    </div>
-  </section>
-</div>
+      <canvas id="mosaic" aria-label="Mosaico"></canvas>
+    </main>
+  </div>
 
 <script>
-/* ---------- Estado y constantes ---------- */
-const BG = "#0b0e15";
-const paletteColors = ["#f6c445","#0b5fff","#d90429","#2eb872"];
-let currentColor = paletteColors[0];
-let lineWidth = 8;
-let gridN = 9;                 // por defecto móvil: 9x9
-let tool = "pencil";           // 'pencil' | 'eraser'
-let geometry = "square";       // 'square' | 'hex'
-let rotOnly = true;
+/* ---------- HiDPI ---------- */
+function setupHiDPICanvas(canvas, cssW, cssH) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  canvas.style.width = cssW + "px";
+  canvas.style.height = cssH + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
 
+/* ---------- Estado ---------- */
+const BG = "#0b0e15";
+const colors = ["#f6c445", "#0b5fff", "#d90429", "#2eb872"]; // amarillo, azul, rojo, verde
+let currentColor = colors[0];
+let lineWidth = 8;
+let gridN = 5;
+let tileSize = 128;
+let tool = "pencil"; // pencil | eraser
+let geometry = "square"; // square | hex
+
+// Modos por geometría
 const MODES_ROT_SQ = ["Igual","Rotado 180°","Rotado 90°"];
 const MODES_MIR_SQ = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
+
 const MODES_ROT_HEX = ["Igual","Rotado 180°","Rotado 60°"];
 const MODES_MIR_HEX = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
+
+let rotOnly = true;
 let modes = MODES_ROT_SQ.slice();
 let modeIndex = 0;
 
-/* ---------- Canvas y helpers HiDPI ---------- */
-const canvas = document.getElementById("mosaic");
-let ctx = canvas.getContext("2d");
+// Historial (tile)
+const history = [];
+let historyIndex = -1;
 
-function setupHiDPI(w, h){
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
-  canvas.style.width = w + "px";
-  canvas.style.height = h + "px";
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-
-/* ---------- Sheets (abrir/cerrar) ---------- */
-const backdrop = document.getElementById("backdrop");
-const sheet = id => document.getElementById(`sheet-${id}`);
-function openSheet(id){
-  backdrop.classList.add("open");
-  sheet(id).classList.add("open");
-}
-function closeSheets(){
-  backdrop.classList.remove("open");
-  document.querySelectorAll(".sheet.open").forEach(s=>s.classList.remove("open"));
-}
-backdrop.addEventListener("click", closeSheets);
-document.querySelectorAll('.tool[data-sheet]').forEach(btn=>{
-  btn.addEventListener('click', ()=> openSheet(btn.dataset.sheet));
-});
-
-/* ---------- UI: Toolbar acciones ---------- */
-const undoBtn = document.getElementById("undoBtn");
-const redoBtn = document.getElementById("redoBtn");
-const clearBtn = document.getElementById("clearBtn");
-const saveBtn = document.getElementById("saveBtn");
-const eraserBtn = document.getElementById("eraserBtn");
-const modePill = document.getElementById("modePill");
-
-eraserBtn.addEventListener("click", ()=>{
-  tool = (tool === "eraser") ? "pencil" : "eraser";
-  eraserBtn.classList.toggle("active", tool === "eraser");
-});
-
-undoBtn.addEventListener("click", undo);
-redoBtn.addEventListener("click", redo);
-clearBtn.addEventListener("click", ()=>{
-  if (confirm("¿Limpiar la baldosa central?")) { clearTile(); pushHistory(); render(); }
-});
-saveBtn.addEventListener("click", ()=>{
-  const a = document.createElement("a");
-  a.download = `mosaico_${geometry}_${gridN}x${gridN}.png`;
-  a.href = canvas.toDataURL("image/png");
-  a.click();
-});
-
-/* ---------- Sheet: Color ---------- */
-const swatchesEl = document.getElementById("swatches");
-paletteColors.forEach((c,i)=>{
-  const b = document.createElement("button");
-  b.className = "swatch" + (i===0 ? " active" : "");
-  b.style.background = c;
-  b.addEventListener("click", ()=>{
-    [...swatchesEl.children].forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    currentColor = c;
-    colorPick.value = c;
-  });
-  swatchesEl.appendChild(b);
-});
-const colorPick = document.getElementById("colorPick");
-colorPick.addEventListener("input", e=> currentColor = e.target.value);
-
+/* ---------- DOM ---------- */
+const mosaic = document.getElementById("mosaic");
+const gridSelect = document.getElementById("gridSelect");
+const tileSelect = document.getElementById("tileSelect");
+const palette = document.getElementById("palette");
+const clearBtn = document.getElementById("clear");
 const sizeRange = document.getElementById("size");
 const sizeVal = document.getElementById("sizeVal");
-sizeRange.addEventListener("input", ()=>{
-  lineWidth = +sizeRange.value; sizeVal.textContent = `${lineWidth} px`;
+const downloadBtn = document.getElementById("download");
+const dimsText = document.getElementById("dims");
+const modeBtn = document.getElementById("modeBtn");
+const modePill = document.getElementById("modePill");
+const toolPencil = document.getElementById("toolPencil");
+const toolEraser = document.getElementById("toolEraser");
+const rotOnlyChk = document.getElementById("rotOnly");
+const geomSelect = document.getElementById("geomSelect");
+const undoBtn = document.getElementById("undoBtn");
+
+/* ---------- Paleta ---------- */
+colors.forEach((c, i) => {
+  const s = document.createElement("button");
+  s.className = "swatch" + (i === 0 ? " active" : "");
+  s.style.background = c;
+  s.addEventListener("click", () => {
+    [...palette.children].forEach(el => el.classList.remove("active"));
+    s.classList.add("active");
+    currentColor = c;
+    tool = "pencil";
+    toggleToolButtons();
+  });
+  palette.appendChild(s);
 });
 
-/* ---------- Sheet: Modo ---------- */
-const rotOnlyChk = document.getElementById("rotOnly");
-const modesWrap = document.getElementById("modesWrap");
+function toggleToolButtons(){
+  toolPencil.classList.toggle("active", tool === "pencil");
+  toolEraser.classList.toggle("active", tool === "eraser");
+}
+toolPencil.addEventListener("click", () => { tool = "pencil"; toggleToolButtons(); });
+toolEraser.addEventListener("click", () => { tool = "eraser"; toggleToolButtons(); });
+
+sizeRange.addEventListener("input", () => { lineWidth = +sizeRange.value; sizeVal.textContent = `${lineWidth} px`; });
+
+gridSelect.addEventListener("change", () => { gridN = +gridSelect.value; resizeAll(); render(); });
+tileSelect.addEventListener("change", () => { tileSize = +tileSelect.value; resizeTilePreserving(); resizeAll(); render(); });
+
+clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
+undoBtn.addEventListener("click", () => { undo(); }); // ← NUEVO botón Deshacer
+
+downloadBtn.addEventListener("click", () => {
+  const link = document.createElement("a");
+  link.download = `mosaico_${geometry}_${gridN}x${gridN}_${tileSize}px_${modes[modeIndex].replace(/\s+/g,'_')}.png`;
+  link.href = mosaic.toDataURL("image/png");
+  link.click();
+});
+
+rotOnlyChk.addEventListener("change", () => {
+  rotOnly = rotOnlyChk.checked;
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  render();
+});
+
+geomSelect.addEventListener("change", () => {
+  geometry = geomSelect.value;
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  initTile();
+  resizeAll();
+  render();
+});
+
+modeBtn.addEventListener("click", () => {
+  modeIndex = (modeIndex + 1) % modes.length;
+  modePill.textContent = modes[modeIndex];
+  render();
+});
 
 function rebuildModes(){
-  const arr = (geometry === "square") ? MODES_ROT_SQ.slice() : MODES_ROT_HEX.slice();
-  const mirrors = (geometry === "square") ? MODES_MIR_SQ : MODES_MIR_HEX;
-  modes = rotOnly ? arr : arr.concat(mirrors);
-  modeIndex = Math.min(modeIndex, modes.length-1);
-  modePill.textContent = modes[modeIndex];
-  // chips
-  modesWrap.innerHTML = "";
-  modes.forEach((m,idx)=>{
-    const chip = document.createElement("button");
-    chip.className = "chip" + (idx===modeIndex ? " active" : "");
-    chip.textContent = m;
-    chip.addEventListener("click", ()=>{
-      modeIndex = idx;
-      [...modesWrap.children].forEach(x=>x.classList.remove("active"));
-      chip.classList.add("active");
-      modePill.textContent = modes[modeIndex];
-      render();
-    });
-    modesWrap.appendChild(chip);
-  });
+  if (geometry === "square") {
+    modes = rotOnly ? MODES_ROT_SQ.slice() : MODES_ROT_SQ.concat(MODES_MIR_SQ);
+  } else {
+    modes = rotOnly ? MODES_ROT_HEX.slice() : MODES_ROT_HEX.concat(MODES_MIR_HEX);
+  }
 }
-rotOnlyChk.addEventListener("change", ()=>{ rotOnly = rotOnlyChk.checked; rebuildModes(); render(); });
 
-/* ---------- Sheet: Geometría ---------- */
-document.querySelectorAll('[data-geom]').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    geometry = btn.dataset.geom;
-    document.querySelectorAll('[data-geom]').forEach(x=>x.classList.toggle('active', x===btn));
-    rebuildModes();
-    initTile(); resizeAll(); render();
-  });
-});
-
-/* ---------- Sheet: Cuadrícula ---------- */
-const gridRange = document.getElementById("gridRange");
-const gridVal = document.getElementById("gridVal");
-gridRange.addEventListener("input", ()=>{
-  gridN = +gridRange.value;
-  gridVal.textContent = `${gridN} × ${gridN}`;
-  resizeAll(); render();
-});
+/* ---------- Formas ---------- */
+function hexPathCentered(ctx, R){
+  // Hex "flat-top" centrado en (0,0)
+  ctx.beginPath();
+  for (let i=0;i<6;i++){
+    const a = i * Math.PI/3;
+    const x = R * Math.cos(a), y = R * Math.sin(a);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
 
 /* ---------- Tile offscreen ---------- */
 const tileCanvas = document.createElement("canvas");
-const tileCtx = tileCanvas.getContext("2d", {willReadFrequently:true});
-function clearTile(){ tileCtx.clearRect(0,0,tileSize, tileSize); tileCtx.fillStyle = BG; tileCtx.fillRect(0,0,tileSize,tileSize); drawTileGuide(); }
+const tileCtx = tileCanvas.getContext("2d", { willReadFrequently: true });
+
 function drawTileGuide(){
   tileCtx.save();
   tileCtx.strokeStyle = "rgba(255,255,255,.06)";
@@ -300,177 +285,323 @@ function drawTileGuide(){
     tileCtx.strokeRect(0.5, 0.5, tileSize-1, tileSize-1);
   } else {
     tileCtx.translate(tileSize/2, tileSize/2);
-    hexPathCentered(tileCtx, tileSize/2);
+    const R = tileSize/2;
+    hexPathCentered(tileCtx, R);
     tileCtx.stroke();
   }
   tileCtx.restore();
 }
-function initTile(){
-  tileCanvas.width = tileSize; tileCanvas.height = tileSize;
-  clearTile(); pushHistory(true);
+
+function initTile() {
+  tileCanvas.width = tileSize;
+  tileCanvas.height = tileSize;
+  clearTile();
+  drawTileGuide();
+  pushHistory(true);
 }
 
-/* ---------- Geometría helpers ---------- */
-function hexPathCentered(g, R){
-  g.beginPath();
-  for (let i=0;i<6;i++){ const a=i*Math.PI/3; const x=R*Math.cos(a), y=R*Math.sin(a); i?g.lineTo(x,y):g.moveTo(x,y); }
-  g.closePath();
+function clearTile() {
+  tileCtx.clearRect(0, 0, tileSize, tileSize);
+  tileCtx.fillStyle = BG;
+  tileCtx.fillRect(0, 0, tileSize, tileSize);
 }
 
-/* ---------- Dibujo en tile central ---------- */
-let drawing=false, lastX=0, lastY=0, straight=false, tileSize=128;
-function beginStroke(){
-  tileCtx.lineWidth = lineWidth; tileCtx.lineCap="round"; tileCtx.lineJoin="round";
-  if (tool==="eraser"){ tileCtx.globalCompositeOperation="destination-out"; tileCtx.strokeStyle="rgba(0,0,0,1)"; }
-  else { tileCtx.globalCompositeOperation="source-over"; tileCtx.strokeStyle=currentColor; }
+function resizeTilePreserving() {
+  const img = new Image();
+  img.src = tileCanvas.toDataURL();
+  img.onload = () => {
+    tileCanvas.width = tileSize;
+    tileCanvas.height = tileSize;
+    clearTile();
+    tileCtx.drawImage(img, 0, 0, tileSize, tileSize);
+    drawTileGuide();
+    pushHistory(true);
+    render();
+  };
 }
-function applyHexClip(){ tileCtx.save(); tileCtx.translate(tileSize/2, tileSize/2); hexPathCentered(tileCtx, tileSize/2); tileCtx.clip(); tileCtx.translate(-tileSize/2, -tileSize/2); }
-function handleDown(e){
-  const p = getPos(e); if (!inCenter(p.x,p.y)) return;
-  drawing=true; straight = e.shiftKey===true;
-  const {x,y} = toTile(p.x,p.y); lastX=x; lastY=y;
-  if (geometry==="hex") applyHexClip();
-  beginStroke(); tileCtx.beginPath(); tileCtx.moveTo(x,y);
+
+/* ---------- Dibujo (clip para hex) ---------- */
+let drawing = false; let lastX = 0, lastY = 0; let straight = false;
+
+function centerRect() {
+  if (geometry === "square") {
+    const cx = Math.floor(gridN / 2) * tileSize;
+    const cy = Math.floor(gridN / 2) * tileSize;
+    return {x: cx, y: cy, w: tileSize, h: tileSize};
+  }
+  const W = gridN * tileSize, H = gridN * tileSize;
+  const cx = Math.floor(W/2 - tileSize/2);
+  const cy = Math.floor(H/2 - tileSize/2);
+  return {x: cx, y: cy, w: tileSize, h: tileSize};
+}
+
+function inCenter(px, py) {
+  const c = centerRect();
+  return px >= c.x && px <= c.x + c.w && py >= c.y && py <= c.y + c.h;
+}
+
+function toTileCoords(px, py) {
+  const c = centerRect();
+  return { x: px - c.x, y: py - c.y };
+}
+
+function beginStrokeStyle(){
+  tileCtx.lineWidth = lineWidth;
+  tileCtx.lineCap = "round";
+  tileCtx.lineJoin = "round";
+  if (tool === "eraser") {
+    tileCtx.globalCompositeOperation = "destination-out";
+    tileCtx.strokeStyle = "rgba(0,0,0,1)";
+  } else {
+    tileCtx.globalCompositeOperation = "source-over";
+    tileCtx.strokeStyle = currentColor;
+  }
+}
+
+function applyHexClipForTileCtx(){
+  tileCtx.save();
+  tileCtx.translate(tileSize/2, tileSize/2);
+  const R = tileSize/2;
+  hexPathCentered(tileCtx, R);
+  tileCtx.clip();
+  tileCtx.translate(-tileSize/2, -tileSize/2);
+}
+
+function handlePointerDown(e) {
+  const pos = getPos(e);
+  if (!inCenter(pos.x, pos.y)) return;
+  drawing = true; straight = e.shiftKey === true;
+  const {x, y} = toTileCoords(pos.x, pos.y);
+  lastX = x; lastY = y;
+
+  if (geometry === "hex") applyHexClipForTileCtx();
+  beginStrokeStyle();
+  tileCtx.beginPath(); tileCtx.moveTo(x, y);
   render(); e.preventDefault();
 }
-function handleMove(e){
-  if(!drawing) return;
-  const p = getPos(e); if (!inCenter(p.x,p.y)) return;
-  let {x,y}=toTile(p.x,p.y);
-  if(straight){ const dx=Math.abs(x-lastX), dy=Math.abs(y-lastY); if(dx>dy) y=lastY; else x=lastX; }
-  tileCtx.lineTo(x,y); tileCtx.stroke(); lastX=x; lastY=y; render(); e.preventDefault();
-}
-function handleUp(){ if(!drawing) return; drawing=false; tileCtx.closePath(); if(geometry==="hex") tileCtx.restore(); tileCtx.globalCompositeOperation="source-over"; pushHistory(); render(); }
-function getPos(e){ const r = canvas.getBoundingClientRect(); const x=(e.clientX??e.touches?.[0]?.clientX)-r.left; const y=(e.clientY??e.touches?.[0]?.clientY)-r.top; return {x,y}; }
-function centerRect(){ // en coordenadas canvas (visual)
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  // el tile está centrado visualmente
-  return { x: Math.floor(w/2 - tileSize/2), y: Math.floor(h/2 - tileSize/2), w: tileSize, h: tileSize };
-}
-function inCenter(px,py){ const c=centerRect(); return px>=c.x&&px<=c.x+c.w&&py>=c.y&&py<=c.y+c.h; }
-function toTile(px,py){ const c=centerRect(); return { x:px-c.x, y:py-c.y }; }
 
-canvas.addEventListener("pointerdown", handleDown);
-canvas.addEventListener("pointermove", handleMove);
-window.addEventListener("pointerup", handleUp);
-canvas.addEventListener("touchstart", handleDown, {passive:false});
-canvas.addEventListener("touchmove", handleMove, {passive:false});
-window.addEventListener("touchend", handleUp);
+function handlePointerMove(e) {
+  if (!drawing) return;
+  const pos = getPos(e); if (!inCenter(pos.x, pos.y)) return;
+  let {x, y} = toTileCoords(pos.x, pos.y);
+  if (straight) {
+    const dx = Math.abs(x - lastX), dy = Math.abs(y - lastY);
+    if (dx > dy) y = lastY; else x = lastX;
+  }
+  tileCtx.lineTo(x, y); tileCtx.stroke();
+  lastX = x; lastY = y; render(); e.preventDefault();
+}
+
+function handlePointerUp() {
+  if (!drawing) return;
+  drawing = false;
+  tileCtx.closePath();
+  if (geometry === "hex") tileCtx.restore(); // salir del clip
+  tileCtx.globalCompositeOperation = "source-over";
+  pushHistory();
+  render();
+}
+
+function getPos(e) {
+  const rect = mosaic.getBoundingClientRect();
+  const x = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const y = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  return { x, y };
+}
 
 /* ---------- Historial ---------- */
-const history=[]; let historyIndex=-1;
-function pushHistory(reset=false){ const data=tileCanvas.toDataURL("image/png"); if(reset){history.length=0;historyIndex=-1;} history.splice(historyIndex+1); history.push(data); historyIndex++; }
-function restoreFrom(dataURL){ const img = new Image(); img.onload=()=>{ clearTile(); tileCtx.drawImage(img,0,0); drawTileGuide(); render(); }; img.src=dataURL; }
-function undo(){ if(historyIndex<=0) return; historyIndex--; restoreFrom(history[historyIndex]); }
-function redo(){ if(historyIndex>=history.length-1) return; historyIndex++; restoreFrom(history[historyIndex]); }
-window.addEventListener("keydown",(e)=>{ const m=e.metaKey||e.ctrlKey; if(m&&e.key.toLowerCase()==="z"){ e.shiftKey?redo():undo(); e.preventDefault(); } else if(m&&e.key.toLowerCase()==="y"){ redo(); e.preventDefault(); } else if(e.key.toLowerCase()==="e"){ eraserBtn.click(); }});
+function pushHistory(reset=false) {
+  const data = tileCanvas.toDataURL("image/png");
+  if (reset) { history.length = 0; historyIndex = -1; }
+  history.splice(historyIndex + 1);
+  history.push(data);
+  historyIndex++;
+}
+function restoreFrom(dataURL) {
+  const img = new Image();
+  img.onload = () => { clearTile(); tileCtx.drawImage(img, 0, 0); drawTileGuide(); render(); };
+  img.src = dataURL;
+}
+window.addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === "z") { e.shiftKey ? redo() : undo(); e.preventDefault(); }
+  else if (mod && e.key.toLowerCase() === "y") { redo(); e.preventDefault(); }
+  else if (e.key.toLowerCase() === "e") { tool = (tool === "eraser") ? "pencil" : "eraser"; toggleToolButtons(); }
+});
+function undo() { if (historyIndex <= 0) return; historyIndex--; restoreFrom(history[historyIndex]); }
+function redo() { if (historyIndex >= history.length - 1) return; historyIndex++; restoreFrom(history[historyIndex]); }
 
 /* ---------- Render ---------- */
-function drawSquare(px,py,{rot=0,flipX=false,flipY=false}={}){
-  const ts=tileSize; ctx.save(); ctx.translate(px,py);
-  if(rot){ ctx.translate(ts/2,ts/2); ctx.rotate(rot*Math.PI/180); ctx.translate(-ts/2,-ts/2); }
-  if(flipX||flipY){ ctx.translate(ts/2,ts/2); ctx.scale(flipX?-1:1, flipY?-1:1); ctx.translate(-ts/2,-ts/2); }
-  ctx.drawImage(tileCanvas,0,0,ts,ts); ctx.restore();
+let mosaicCtx;
+function resizeAll() {
+  const isMobile = window.innerWidth <= 860;
+  const targetW = isMobile ? Math.max(320, window.innerWidth - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--pad'))*2)) : Math.min(1400, Math.max(360, gridN * tileSize));
+  const targetH = isMobile ? Math.round(window.innerHeight * 0.72) : Math.min(1000, Math.max(360, gridN * tileSize));
+  mosaicCtx = setupHiDPICanvas(mosaic, targetW, targetH);
+  dimsText.textContent = `${geometry === 'square' ? gridN+'×'+gridN : gridN+' filas'} — baldosa ${tileSize}px`;
 }
-function hexPath(R){ ctx.beginPath(); for(let i=0;i<6;i++){ const a=i*Math.PI/3; const x=R*Math.cos(a), y=R*Math.sin(a); i?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.closePath(); }
-function drawHex(cx,cy,{rot=0,flipX=false,flipY=false}={}){
-  const ts=tileSize, R=ts/2; ctx.save(); ctx.translate(cx,cy); if(rot) ctx.rotate(rot*Math.PI/180); if(flipX||flipY) ctx.scale(flipX?-1:1, flipY?-1:1);
-  hexPath(R); ctx.clip();
-  ctx.save(); ctx.translate(-ts/2,-ts/2); ctx.scale(1.01,1.01); ctx.drawImage(tileCanvas,0,0,ts,ts); ctx.restore();
-  ctx.restore();
+
+function drawTileSquare(px, py, { rot=0, flipX=false, flipY=false } = {}) {
+  const ts = tileSize;
+  mosaicCtx.save();
+  mosaicCtx.translate(px, py);
+  if (rot) { mosaicCtx.translate(ts/2, ts/2); mosaicCtx.rotate(rot*Math.PI/180); mosaicCtx.translate(-ts/2,-ts/2); }
+  if (flipX || flipY) { mosaicCtx.translate(ts/2, ts/2); mosaicCtx.scale(flipX?-1:1, flipY?-1:1); mosaicCtx.translate(-ts/2,-ts/2); }
+  mosaicCtx.drawImage(tileCanvas, 0, 0);
+  mosaicCtx.restore();
+}
+
+function hexPathCentered(ctx, R){ // redefine in render scope to use on canvas
+  ctx.beginPath();
+  for (let i=0;i<6;i++){
+    const a = i * Math.PI/3;
+    const x = R * Math.cos(a), y = R * Math.sin(a);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+}
+
+function drawHexAt(cx, cy, { rot=0, flipX=false, flipY=false } = {}) {
+  const ts = tileSize;
+  const R  = ts/2;
+
+  mosaicCtx.save();
+  mosaicCtx.translate(cx, cy);
+  if (rot) mosaicCtx.rotate(rot * Math.PI/180);
+  if (flipX || flipY) mosaicCtx.scale(flipX?-1:1, flipY?-1:1);
+
+  // Clip al hex centrado (flat-top)
+  hexPathCentered(mosaicCtx, R);
+  mosaicCtx.clip();
+
+  // pequeño solape para evitar micro-grietas
+  mosaicCtx.save();
+  mosaicCtx.translate(-ts/2, -ts/2);
+  mosaicCtx.scale(1.01, 1.01);
+  mosaicCtx.drawImage(tileCanvas, 0, 0, ts, ts);
+  mosaicCtx.restore();
+
+  mosaicCtx.restore();
 }
 
 function renderSquares(){
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle=BG; ctx.fillRect(0,0,w,h);
+  const W = gridN * tileSize, H = gridN * tileSize;
+  mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
+  mosaicCtx.fillStyle = BG; mosaicCtx.fillRect(0,0,W,H);
   const mode = modes[modeIndex];
-  for(let gy=0; gy<gridN; gy++){
-    for(let gx=0; gx<gridN; gx++){
-      const px = gx*tileSize + Math.floor((w - gridN*tileSize)/2);
-      const py = gy*tileSize + Math.floor((h - gridN*tileSize)/2);
-      if (mode==="Igual") drawSquare(px,py,{});
-      else if (mode==="Rotado 180°") drawSquare(px,py,{rot: ((gx+gy)%2)?180:0});
-      else if (mode==="Rotado 90°") drawSquare(px,py,{rot: ((gx+gy)%4)*90});
-      else if (mode==="Espejo vertical") drawSquare(px,py,{flipX:(gx%2)===1});
-      else if (mode==="Espejo horizontal") drawSquare(px,py,{flipY:(gy%2)===1});
-      else if (mode==="Espejo ajedrez") drawSquare(px,py,{flipX:(gx%2)===1, flipY:(gy%2)===1});
+
+  for (let gy=0; gy<gridN; gy++){
+    for (let gx=0; gx<gridN; gx++){
+      const px = gx*tileSize, py = gy*tileSize;
+      if (mode === "Igual") {
+        drawTileSquare(px, py, {});
+      } else if (mode === "Rotado 180°") {
+        const rot = ((gx + gy) % 2) ? 180 : 0;
+        drawTileSquare(px, py, { rot });
+      } else if (mode === "Rotado 90°") {
+        const rot = ((gx + gy) % 4) * 90;
+        drawTileSquare(px, py, { rot });
+      } else if (mode === "Espejo vertical") {
+        drawTileSquare(px, py, { flipX: (gx % 2) === 1 });
+      } else if (mode === "Espejo horizontal") {
+        drawTileSquare(px, py, { flipY: (gy % 2) === 1 });
+      } else if (mode === "Espejo ajedrez") {
+        drawTileSquare(px, py, { flipX: (gx % 2) === 1, flipY: (gy % 2) === 1 });
+      }
     }
   }
-  // guía del centro
-  const c=centerRect(); ctx.setLineDash([6,6]); ctx.strokeStyle="rgba(79,140,255,.9)"; ctx.lineWidth=2; ctx.strokeRect(c.x+1,c.y+1,c.w-2,c.h-2); ctx.setLineDash([]);
+
+  // Grid y centro
+  mosaicCtx.strokeStyle = "rgba(255,255,255,.08)"; mosaicCtx.lineWidth = 1;
+  for (let i=0;i<=gridN;i++){
+    const p = i*tileSize + .5;
+    mosaicCtx.beginPath(); mosaicCtx.moveTo(p,0); mosaicCtx.lineTo(p,H); mosaicCtx.stroke();
+    mosaicCtx.beginPath(); mosaicCtx.moveTo(0,p); mosaicCtx.lineTo(W,p); mosaicCtx.stroke();
+  }
+  const c = centerRect();
+  mosaicCtx.strokeStyle = "rgba(79,140,255,.9)";
+  mosaicCtx.lineWidth = 2;
+  mosaicCtx.setLineDash([6,6]);
+  mosaicCtx.strokeRect(c.x+1, c.y+1, c.w-2, c.h-2);
+  mosaicCtx.setLineDash([]);
 }
 
 function renderHex(){
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle=BG; ctx.fillRect(0,0,w,h);
+  mosaicCtx.clearRect(0,0,mosaic.width,mosaic.height);
+  const W = mosaic.width, H = mosaic.height;
+  mosaicCtx.fillStyle = BG; mosaicCtx.fillRect(0,0,W,H);
   const mode = modes[modeIndex];
-  const R=tileSize/2, dx=1.5*R, dy=Math.sqrt(3)*R;
-  const cols = gridN, rows = gridN;
-  const totalW = 2*R + (cols-1)*dx;
-  const totalH = dy*rows + dy/2;
-  const ox = Math.floor((w-totalW)/2) + R;
-  const oy = Math.floor((h-totalH)/2) + R;
 
-  for(let c=-Math.floor(cols/2); c<=Math.floor(cols/2); c++){
-    for(let r=-Math.floor(rows/2); r<=Math.floor(rows/2); r++){
-      const cx = ox + (c + Math.floor(cols/2))*dx;
-      const cy = oy + (r + Math.floor(rows/2))*dy + (( (c + Math.floor(cols/2)) & 1) ? dy/2 : 0);
+  // Parámetros hex flat-top
+  const ts = tileSize;
+  const R  = ts/2;
+  const dx = 1.5 * R;              // centros horizontales
+  const dy = Math.sqrt(3) * R;     // centros verticales
+
+  // Centro visual
+  const CW = gridN * tileSize, CH = gridN * tileSize;
+  const originX = CW/2;
+  const originY = CH/2;
+
+  const half = Math.floor(gridN/2);
+  for (let col = -half; col <= half; col++){
+    for (let row = -half; row <= half; row++){
+      const cx = originX + col * dx;
+      const cy = originY + row * dy + ((col & 1) ? dy/2 : 0);
 
       let rot=0, flipX=false, flipY=false;
-      if (mode==="Igual"){}
-      else if (mode==="Rotado 180°"){ rot = ((r+c)%2)?180:0; }
-      else if (mode==="Rotado 60°"){ let k=((r-c)%6+6)%6; rot=k*60; }
-      else if (mode==="Espejo vertical"){ flipX = ((c + Math.floor(cols/2))%2)!==0; }
-      else if (mode==="Espejo horizontal"){ flipY = ((r + Math.floor(rows/2))%2)!==0; }
-      else if (mode==="Espejo ajedrez"){ flipX = ((c + Math.floor(cols/2))%2)!==0; flipY = ((r + Math.floor(rows/2))%2)!==0; }
+      if (mode === "Igual") {
+      } else if (mode === "Rotado 180°") {
+        rot = ((row + col) % 2) ? 180 : 0;
+      } else if (mode === "Rotado 60°") {
+        let k = ((row - col) % 6 + 6) % 6; rot = k * 60;
+      } else if (mode === "Espejo vertical") {
+        flipX = (col % 2) !== 0;
+      } else if (mode === "Espejo horizontal") {
+        flipY = (row % 2) !== 0;
+      } else if (mode === "Espejo ajedrez") {
+        flipX = (col % 2) !== 0; flipY = (row % 2) !== 0;
+      }
 
-      drawHex(cx,cy,{rot,flipX,flipY});
+      drawHexAt(cx, cy, { rot, flipX, flipY });
     }
   }
 
-  // guía centro
-  const c=centerRect(); ctx.save(); ctx.translate(c.x+c.w/2, c.y+c.h/2); hexPath(R); ctx.setLineDash([6,6]); ctx.strokeStyle="rgba(79,140,255,.9)"; ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+  // Guía del hex central
+  mosaicCtx.save();
+  mosaicCtx.strokeStyle = "rgba(79,140,255,.9)";
+  mosaicCtx.lineWidth = 2;
+  mosaicCtx.setLineDash([6,6]);
+  mosaicCtx.translate(originX, originY);
+  hexPathCentered(mosaicCtx, R);
+  mosaicCtx.stroke();
+  mosaicCtx.restore();
 }
 
-function render(){ if(geometry==="square") renderSquares(); else renderHex(); }
-
-/* ---------- Resize que llena el ancho ---------- */
-function resizeAll(){
-  const wrap = document.querySelector('.canvas-wrap');
-  const stageW = wrap.clientWidth;
-  if (geometry === "square"){
-    tileSize = Math.max(8, Math.floor(stageW / gridN));
-    const canvasW = tileSize * gridN;
-    setupHiDPI(canvasW, canvasW); // cuadrado
-  } else {
-    // Hex flat-top: totalW = 2R + (n-1)*1.5R = R*(1.5n + 0.5) => R = stageW / (1.5n + 0.5)
-    const n = gridN;
-    const R = stageW / (1.5*n + 0.5);
-    tileSize = Math.max(8, Math.floor(2*R));
-    const dx = 1.5*(tileSize/2), dy = Math.sqrt(3)*(tileSize/2);
-    const totalH = dy*n + dy/2;
-    setupHiDPI(stageW, Math.ceil(totalH)+2);
-  }
+function render(){
+  if (geometry === "square") renderSquares();
+  else renderHex();
 }
+
+/* ---------- Puntero ---------- */
+mosaic.addEventListener("pointerdown", handlePointerDown);
+mosaic.addEventListener("pointermove", handlePointerMove);
+window.addEventListener("pointerup", handlePointerUp);
+mosaic.addEventListener("touchstart", handlePointerDown, {passive:false});
+mosaic.addEventListener("touchmove", handlePointerMove, {passive:false});
+window.addEventListener("touchend", handlePointerUp);
 
 /* ---------- Init ---------- */
-function bootstrapUI(){
-  // activar chips por defecto
-  document.querySelectorAll('[data-geom]').forEach(x=>x.classList.toggle('active', x.dataset.geom===geometry));
-  // construir modos
-  rebuildModes();
-  // swatches ya creados; set grosor
-  sizeVal.textContent = `${lineWidth} px`;
-  gridRange.value = gridN; gridVal.textContent = `${gridN} × ${gridN}`;
-}
-function initTileAndRender(){ initTile(); resizeAll(); render(); }
+rebuildModes();
+setupHiDPICanvas(mosaic, 800, 600); // inicial
+function ensureUI() { modePill.textContent = modes[modeIndex]; sizeVal.textContent = `${lineWidth} px`; }
+ensureUI();
+initTile(); resizeAll(); render();
 
-bootstrapUI();
-initTileAndRender();
-
-window.addEventListener("resize", ()=>{ resizeAll(); render(); });
-window.matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`).addEventListener("change", ()=>{ resizeAll(); render(); });
-
+// Reajuste en cambios de tamaño/DPR
+let dpr = window.devicePixelRatio || 1;
+window.matchMedia(`(resolution: ${dpr}dppx)`).addEventListener("change", () => { dpr = window.devicePixelRatio || 1; resizeAll(); render(); });
+window.addEventListener("resize", () => { resizeAll(); render(); });
 </script>
 </body>
 </html>
