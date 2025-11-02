@@ -7,63 +7,62 @@
 <style>
   :root{
     --bg:#0f1115; --card:#151923; --fg:#e6e8ef; --muted:#99a1b3; --accent:#4f8cff;
-    --pad:16px; --ring:#2a3042;
+    --ring:#2a3042; --pad:12px;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-  .wrap{max-width:1200px;margin:0 auto;padding:var(--pad)}
-  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   h1{font-size:18px;margin:0}
   .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--ring);background:#121622;color:var(--muted);font-size:12px}
 
   .stage{background:var(--card);border:1px solid #232839;border-radius:16px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-  .canvas-wrap{position:relative}
-  canvas{background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:auto;touch-action:none}
   .topbar{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 10px}
   .dims{font-size:12px;color:var(--muted)}
+  canvas{background:#0b0e15;border:1px solid #232839;border-radius:16px;display:block;width:100%;height:auto;touch-action:none}
 
-  /* Herramientas en una fila (dos acordeones + icono deshacer a la derecha) */
-  .tools{
+  /* Paleta + barra vertical de iconos en la misma fila */
+  .underbar{
     display:grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 44px;
     gap:10px;
     align-items:start;
-    margin-top:12px;
+    margin-top:10px;
   }
-  details{background:var(--card);border:1px solid #232839;border-radius:12px;overflow:hidden;min-width:0}
-  summary{
-    list-style:none;display:flex;align-items:center;gap:8px;
-    padding:10px 12px;cursor:pointer;font-size:14px
-  }
-  summary::-webkit-details-marker{display:none}
-  .panel{padding:10px 12px;border-top:1px solid #232839;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
-  .btn, select, .btn-ghost{
-    appearance:none;border:1px solid var(--ring);background:#1b2030;color:var(--fg);
-    padding:8px 12px;border-radius:10px;cursor:pointer;min-height:36px;font:inherit
-  }
-  .btn:active{transform:translateY(1px)}
-  .btn-ghost{background:#101522;min-width:36px}
-  .icon-btn{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;font-size:18px}
-  .toggle.active{outline:2px solid var(--accent)}
-  input[type="range"]{width:180px}
-
   .palette-grid{
-    display:grid; grid-template-columns: repeat(8, 28px); gap:8px;
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding:8px; border:1px solid #232839; border-radius:12px; background:#101520;
   }
   .swatch{
     width:28px;height:28px;border-radius:6px;border:2px solid var(--ring);cursor:pointer
   }
   .swatch.active{outline:2px solid var(--accent)}
-  .right-group{display:flex;gap:10px;align-items:center;justify-content:flex-end}
 
+  .vtools{
+    display:flex; flex-direction:column; gap:8px;
+    align-items:stretch; justify-content:flex-start;
+  }
+  .icon-btn{
+    width:44px; height:44px; display:inline-flex;
+    align-items:center; justify-content:center;
+    border:1px solid var(--ring); background:#1b2030; color:var(--fg);
+    border-radius:12px; cursor:pointer; font-size:20px;
+  }
+  .icon-btn:active{transform:translateY(1px)}
+  .icon-btn.active{outline:2px solid var(--accent)}
+  .icon-small{font-size:18px}
   .bottom-actions{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn, .btn-ghost{
+    appearance:none;border:1px solid var(--ring);background:#1b2030;color:var(--fg);
+    padding:10px 14px;border-radius:12px;cursor:pointer;min-height:40px;font:inherit
+  }
+  .btn-ghost{background:#101522}
 
   @media (max-width:860px){
-    :root{--pad:10px}
-    .tools{grid-template-columns: 1fr 1fr auto}
-    input[type="range"]{width:160px}
+    .wrap{padding:10px}
+    .underbar{grid-template-columns: 1fr 42px}
+    .icon-btn{width:42px;height:42px}
+    .swatch{width:26px;height:26px}
   }
 </style>
 </head>
@@ -79,69 +78,24 @@
         <span class="pill">Dibuja en la baldosa central</span>
         <span id="dims" class="dims"></span>
       </div>
-      <div class="canvas-wrap">
-        <canvas id="mosaic" aria-label="Mosaico"></canvas>
-      </div>
 
-      <!-- Herramientas debajo: dos acordeones lado a lado + deshacer (icono) -->
-      <div class="tools">
-        <!-- GEOMETRÍA (cerrado por defecto) -->
-        <details id="geoGroup">
-          <summary>📐 Geometría</summary>
-          <div class="panel">
-            <div class="row">
-              <span class="label">Tipo</span>
-              <select id="geomSelect">
-                <option value="square" selected>Cuadrados</option>
-                <option value="hex">Hexágonos</option>
-              </select>
-            </div>
-            <div class="row">
-              <span class="label">Modo</span>
-              <select id="modeSelect"></select>
-              <label class="label" for="rotOnly">Solo rotaciones</label>
-              <input id="rotOnly" type="checkbox" checked />
-            </div>
-            <div class="row">
-              <span class="label">Cuadrícula</span>
-              <select id="gridSelect">
-                <option value="3" selected>3 × 3</option>
-                <option value="5">5 × 5</option>
-                <option value="7">7 × 7</option>
-                <option value="9">9 × 9</option>
-                <option value="12">12 × 12</option>
-              </select>
-            </div>
-          </div>
-        </details>
+      <canvas id="mosaic" aria-label="Mosaico"></canvas>
 
-        <!-- PINTAR (cerrado por defecto) -->
-        <details id="paintGroup">
-          <summary>🎨 Pintar</summary>
-          <div class="panel">
-            <div class="row">
-              <button id="toolPencil" class="btn toggle active">✏️ Lápiz</button>
-              <button id="toolEraser" class="btn">🧽 Goma</button>
-            </div>
-            <div class="row" style="width:100%">
-              <span class="label">Color</span>
-              <div id="palette" class="palette-grid"></div>
-            </div>
-            <div class="row">
-              <span class="label">Grosor</span>
-              <input id="size" type="range" min="1" max="40" value="8" />
-              <span id="sizeVal" class="pill">8 px</span>
-            </div>
-          </div>
-        </details>
+      <!-- Debajo: paleta de colores a la izquierda + barra vertical de iconos a la derecha -->
+      <div class="underbar">
+        <div id="palette" class="palette-grid" aria-label="Colores"></div>
 
-        <!-- Deshacer (icono) -->
-        <div class="right-group">
-          <button id="undoBtn" class="btn-ghost icon-btn" title="Deshacer" aria-label="Deshacer">↶</button>
+        <div class="vtools" aria-label="Herramientas">
+          <button id="undoBtn" class="icon-btn" title="Deshacer" aria-label="Deshacer">↶</button>
+          <button id="toolPencil" class="icon-btn active" title="Lápiz" aria-label="Lápiz">✏️</button>
+          <button id="toolEraser" class="icon-btn" title="Goma" aria-label="Goma">🧽</button>
+          <button id="geomBtn" class="icon-btn" title="Tipo (Cuadrado/Hexágono)" aria-label="Tipo">◻️</button>
+          <button id="modeBtn" class="icon-btn" title="Modo" aria-label="Modo">🔄</button>
+          <button id="rotBtn" class="icon-btn active" title="Solo rotaciones" aria-label="Solo rotaciones">⟳</button>
+          <button id="gridBtn" class="icon-btn" title="Cuadrícula" aria-label="Cuadrícula">#️⃣</button>
         </div>
       </div>
 
-      <!-- Debajo: Limpiar y Guardar -->
       <div class="bottom-actions">
         <button id="clear" class="btn">Limpiar</button>
         <button id="download" class="btn-ghost">Guardar PNG</button>
@@ -164,7 +118,6 @@ function setupHiDPICanvas(canvas, cssW, cssH) {
 
 /* ---------- Estado ---------- */
 const BG = "#0b0e15";
-// Paleta ampliada (24)
 const COLORS = [
   "#ffffff","#000000",
   "#f6c445","#0b5fff","#d90429","#2eb872",
@@ -174,136 +127,113 @@ const COLORS = [
   "#8bc34a","#4caf50","#009688","#795548",
   "#9e9e9e","#607d8b"
 ];
-let currentColor = COLORS[2];
+let currentColor = COLORS[3];       // azul por defecto
 let lineWidth = 8;
-let gridN = 3;              // por defecto 3×3
-let tileSize = 128;         // fijo; no hay selector
-let tool = "pencil";        // pencil | eraser
-let geometry = "square";    // square | hex
+let gridN = 3;
+let tileSize = 128;                 // fijo
+let tool = "pencil";                // pencil | eraser
+let geometry = "square";            // square | hex
+let rotOnly = true;
+let viewScale = 1;
 
+// Modos
 const MODES_ROT_SQ = ["Igual","Rotado 180°","Rotado 90°"];
 const MODES_MIR_SQ = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
 const MODES_ROT_HEX = ["Igual","Rotado 180°","Rotado 60°"];
 const MODES_MIR_HEX = ["Espejo vertical","Espejo horizontal","Espejo ajedrez"];
-let rotOnly = true;
 let modes = MODES_ROT_SQ.slice();
-let modeIndex = 0;          // "Igual"
-
-let viewScale = 1;          // escala para que siempre quepa
+let modeIndex = 0;
 
 // Historial
 const history = []; let historyIndex = -1;
 
 /* ---------- DOM ---------- */
 const mosaic = document.getElementById("mosaic");
-const gridSelect = document.getElementById("gridSelect");
+const palette = document.getElementById("palette");
+const undoBtn = document.getElementById("undoBtn");
+const toolPencil = document.getElementById("toolPencil");
+const toolEraser = document.getElementById("toolEraser");
+const geomBtn = document.getElementById("geomBtn");
+const modeBtn = document.getElementById("modeBtn");
+const rotBtn = document.getElementById("rotBtn");
+const gridBtn = document.getElementById("gridBtn");
 const clearBtn = document.getElementById("clear");
-const sizeRange = document.getElementById("size");
-const sizeVal = document.getElementById("sizeVal");
 const downloadBtn = document.getElementById("download");
 const dimsText = document.getElementById("dims");
 const modePill = document.getElementById("modePill");
-const toolPencil = document.getElementById("toolPencil");
-const toolEraser = document.getElementById("toolEraser");
-const rotOnlyChk = document.getElementById("rotOnly");
-const geomSelect = document.getElementById("geomSelect");
-const undoBtn = document.getElementById("undoBtn");
-const modeSelect = document.getElementById("modeSelect");
-const geoGroup = document.getElementById("geoGroup");
-const paintGroup = document.getElementById("paintGroup");
-
-/* ---------- Acordeón: al abrir uno, cerrar el otro; mantener lado a lado ---------- */
-[geoGroup, paintGroup].forEach(d => {
-  d.addEventListener("toggle", () => {
-    if (d.open) {
-      [geoGroup, paintGroup].forEach(o => { if (o !== d) o.open = false; });
-    }
-  });
-});
 
 /* ---------- Paleta ---------- */
-const palette = document.getElementById("palette");
 function buildPalette(){
   palette.innerHTML = "";
   COLORS.forEach((c, i) => {
-    const s = document.createElement("button");
-    s.className = "swatch" + (i===2 ? " active" : "");
-    s.style.background = c;
-    s.addEventListener("click", () => {
+    const sw = document.createElement("button");
+    sw.className = "swatch" + (c===currentColor ? " active" : "");
+    sw.style.background = c;
+    sw.title = c;
+    sw.setAttribute("aria-label", `Color ${c}`);
+    sw.addEventListener("click", () => {
       [...palette.children].forEach(el => el.classList.remove("active"));
-      s.classList.add("active");
+      sw.classList.add("active");
       currentColor = c;
       tool = "pencil";
-      toggleToolButtons();
+      updateToolButtons();
     });
-    palette.appendChild(s);
+    palette.appendChild(sw);
   });
 }
-buildPalette();
-
-function toggleToolButtons(){
-  toolPencil.classList.toggle("active", tool === "pencil");
-  toolEraser.classList.toggle("active", tool === "eraser");
+function updateToolButtons(){
+  toolPencil.classList.toggle("active", tool==="pencil");
+  toolEraser.classList.toggle("active", tool==="eraser");
 }
-toolPencil.addEventListener("click", () => { tool="pencil"; toggleToolButtons(); });
-toolEraser.addEventListener("click", () => { tool="eraser"; toggleToolButtons(); });
+toolPencil.addEventListener("click", ()=>{ tool="pencil"; updateToolButtons(); });
+toolEraser.addEventListener("click", ()=>{ tool="eraser"; updateToolButtons(); });
 
-sizeRange.addEventListener("input", () => { lineWidth = +sizeRange.value; sizeVal.textContent = `${lineWidth} px`; });
+/* ---------- Botones verticales ---------- */
+undoBtn.addEventListener("click", () => undo());
 
-gridSelect.value = String(gridN);
-gridSelect.addEventListener("change", () => { gridN = +gridSelect.value; resizeAll(); render(); });
-
-clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
-undoBtn.addEventListener("click", () => { undo(); });
-
-downloadBtn.addEventListener("click", () => {
-  const link = document.createElement("a");
-  link.download = `baldosas_${geometry}_${gridN}x${gridN}_${modes[modeIndex].replace(/\s+/g,'_')}.png`;
-  link.href = mosaic.toDataURL("image/png");
-  link.click();
+geomBtn.addEventListener("click", () => {
+  geometry = (geometry === "square") ? "hex" : "square";
+  geomBtn.textContent = (geometry === "square") ? "◻️" : "⬡";
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
+  initTile(); resizeAll(); render();
 });
 
-/* ---------- Modo como select ---------- */
-function updateModeOptions(){
-  let list;
-  if (geometry === "square")
-    list = rotOnly ? MODES_ROT_SQ : MODES_ROT_SQ.concat(MODES_MIR_SQ);
-  else
-    list = rotOnly ? MODES_ROT_HEX : MODES_ROT_HEX.concat(MODES_MIR_HEX);
-
-  modes = list;
-  modeIndex = 0;
-  modeSelect.innerHTML = "";
-  list.forEach((m, i) => {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = m;
-    modeSelect.appendChild(opt);
-  });
-  modeSelect.value = "0";
-  modePill.textContent = modes[0];
-}
-modeSelect.addEventListener("change", () => {
-  modeIndex = +modeSelect.value;
+modeBtn.addEventListener("click", () => {
+  modeIndex = (modeIndex + 1) % modes.length;
   modePill.textContent = modes[modeIndex];
   render();
 });
 
-rotOnlyChk.addEventListener("change", () => {
-  rotOnly = rotOnlyChk.checked;
-  updateModeOptions();
+rotBtn.addEventListener("click", () => {
+  rotOnly = !rotOnly;
+  rotBtn.classList.toggle("active", rotOnly);
+  rebuildModes();
+  modeIndex = 0;
+  modePill.textContent = modes[modeIndex];
   render();
 });
 
-geomSelect.addEventListener("change", () => {
-  geometry = geomSelect.value;
-  updateModeOptions();
-  initTile();
-  resizeAll();
-  render();
+const GRID_STEPS = [3,5,7,9,12];
+gridBtn.addEventListener("click", () => {
+  const idx = GRID_STEPS.indexOf(gridN);
+  gridN = GRID_STEPS[(idx+1) % GRID_STEPS.length];
+  resizeAll(); render();
 });
 
-/* ---------- Formas ---------- */
+/* ---------- Menú de modos según geometría/rotOnly ---------- */
+function rebuildModes(){
+  if (geometry === "square")
+    modes = rotOnly ? MODES_ROT_SQ.slice() : MODES_ROT_SQ.concat(MODES_MIR_SQ);
+  else
+    modes = rotOnly ? MODES_ROT_HEX.slice() : MODES_ROT_HEX.concat(MODES_MIR_HEX);
+}
+
+/* ---------- Tile offscreen ---------- */
+const tileCanvas = document.createElement("canvas");
+const tileCtx = tileCanvas.getContext("2d", { willReadFrequently: true });
+
 function hexPathCentered(ctx, R){
   ctx.beginPath();
   for (let i=0;i<6;i++){
@@ -313,10 +243,6 @@ function hexPathCentered(ctx, R){
   }
   ctx.closePath();
 }
-
-/* ---------- Tile offscreen ---------- */
-const tileCanvas = document.createElement("canvas");
-const tileCtx = tileCanvas.getContext("2d", { willReadFrequently: true });
 
 function drawTileGuide(){
   tileCtx.save();
@@ -394,6 +320,9 @@ function applyHexClipForTileCtx(){
   tileCtx.translate(-tileSize/2, -tileSize/2);
 }
 
+/* pointer helpers (corrigen la escala) */
+let mosaicCtx;
+let viewScale = 1;
 function getPos(e){
   const rect = mosaic.getBoundingClientRect();
   const clientX = (e.clientX ?? e.touches?.[0]?.clientX);
@@ -460,15 +389,14 @@ window.addEventListener("keydown",(e)=>{
 function undo(){ if (historyIndex<=0) return; historyIndex--; restoreFrom(history[historyIndex]); }
 function redo(){ if (historyIndex>=history.length-1) return; historyIndex++; restoreFrom(history[historyIndex]); }
 
-/* ---------- Render con escala de ajuste ---------- */
-let mosaicCtx;
+/* ---------- Render con auto-escala ---------- */
 function resizeAll(){
   const logicalW = gridN * tileSize;
   const logicalH = gridN * tileSize;
 
-  const container = mosaic.parentElement;
+  const container = mosaic.parentElement;        // canvas wrapper
   const availW = Math.max(280, container.clientWidth);
-  const availH = Math.max(240, Math.round(window.innerHeight * (window.innerWidth<860 ? 0.70 : 0.60)));
+  const availH = Math.max(240, Math.round(window.innerHeight * (window.innerWidth<860 ? 0.64 : 0.56)));
 
   viewScale = Math.min(availW / logicalW, availH / logicalH, 1);
 
@@ -504,6 +432,18 @@ function drawHexAt(cx,cy,{rot=0,flipX=false,flipY=false}={}){
   mosaicCtx.drawImage(tileCanvas,0,0,ts,ts);
   mosaicCtx.restore();
   mosaicCtx.restore();
+}
+
+function centerRect(){
+  if (geometry === "square"){
+    const cx = Math.floor(gridN/2) * tileSize;
+    const cy = Math.floor(gridN/2) * tileSize;
+    return {x:cx,y:cy,w:tileSize,h:tileSize};
+  }
+  const W = gridN*tileSize, H = gridN*tileSize;
+  const cx = Math.floor(W/2 - tileSize/2);
+  const cy = Math.floor(H/2 - tileSize/2);
+  return {x:cx,y:cy,w:tileSize,h:tileSize};
 }
 
 function renderSquares(){
@@ -608,7 +548,7 @@ function render(){
   else renderHex();
 }
 
-/* ---------- Puntero ---------- */
+/* ---------- Eventos pointer ---------- */
 mosaic.addEventListener("pointerdown", handlePointerDown);
 mosaic.addEventListener("pointermove", handlePointerMove);
 window.addEventListener("pointerup", handlePointerUp);
@@ -616,14 +556,28 @@ mosaic.addEventListener("touchstart", handlePointerDown, {passive:false});
 mosaic.addEventListener("touchmove", handlePointerMove, {passive:false});
 window.addEventListener("touchend", handlePointerUp);
 
+/* ---------- Acciones inferiores ---------- */
+clearBtn.addEventListener("click", () => { clearTile(); pushHistory(); render(); });
+downloadBtn.addEventListener("click", () => {
+  const link = document.createElement("a");
+  link.download = `baldosas_${geometry}_${gridN}x${gridN}_${modes[modeIndex].replace(/\s+/g,'_')}.png`;
+  link.href = mosaic.toDataURL("image/png");
+  link.click();
+});
+
 /* ---------- Init ---------- */
-function ensureUI(){ sizeVal.textContent = `${lineWidth} px`; }
+function ensureUI(){
+  modePill.textContent = modes[modeIndex];
+  geomBtn.textContent = (geometry === "square") ? "◻️" : "⬡";
+  rotBtn.classList.toggle("active", rotOnly);
+}
+buildPalette();
+rebuildModes();
 ensureUI();
-updateModeOptions();
 initTile();
 resizeAll(); render();
 
-// Reajustes en DPR/size
+// Ajustes en tamaño/DPR
 let dpr = window.devicePixelRatio || 1;
 window.matchMedia(`(resolution: ${dpr}dppx)`).addEventListener("change", () => { dpr = window.devicePixelRatio || 1; resizeAll(); render(); });
 window.addEventListener("resize", () => { resizeAll(); render(); });
